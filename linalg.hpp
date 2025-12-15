@@ -282,7 +282,137 @@ public:
 };
 
 
+template <typename T>
+class Vector{
+public:
 
+    Vector(size_t N, T init_value = 0, bool column_vector = true)
+    {
+        _data.resize(N, init_value);
+        _column_vector = column_vector;
+    }
+    Vector(const Vector& v)
+    {
+        _data = v._data;
+        _column_vector = v._column_vector;
+    }
+
+    T operator[](size_t index) const 
+    {
+        return _data[index];
+    } 
+
+    Vector& operator=(const Vector& vec)
+    {
+        _data.clear();
+        _data = vec._data;
+        _column_vector = vec._column_vector;
+    }
+
+    void set(size_t index, T value) {_data[index] = value;}
+    size_t getSize() const {return _data.size();}
+
+    Vector& transpose()
+    {
+        _column_vector = false;
+        return *this;
+    }
+
+    bool isColumn() const {return _column_vector;}
+
+
+private:
+    bool            _column_vector;
+    std::vector<T>  _data;
+};
+
+
+template <typename T>
+T dot_product(const Vector<T>& v1, const Vector<T>& v2){
+
+    if(v1.getSize() != v2.getSize()){
+        throw std::invalid_argument("not the same size!");
+    }
+    
+    T res = 0;
+    for(size_t i = 0; i < v1.getSize(); i++)
+    {
+        res += v1[i] * v2[i];
+    }
+
+    return res;
+}
+
+
+template <typename T>
+Vector<T> operator*(const Matrix<T>& M, const Vector<T>& v)
+{
+    if(!v.isColumn())
+    {
+        throw std::invalid_argument("vector cannot multuply... pls transpose");
+    }
+    if(v.getSize() != M.get_cols())
+    {
+        throw std::invalid_argument("vector cannot multuply. Different size");
+    }
+
+    Vector<T> res(M.get_rows(), 0, v.isColumn());
+
+    for(size_t i = 0; i < M.get_rows(); i++)
+    {
+        T val = 0;
+        for(size_t j = 0; j < v.getSize(); j++)
+        {
+            val += M(i, j) * v[j];
+        }
+        res.set(i, val);
+    }
+
+    return res;
+
+}
+
+
+
+template <typename T>
+Vector<T> operator*(const Vector<T>& v, const Matrix<T>& M)
+{
+    if(v.isColumn())
+    {
+        throw std::invalid_argument("vector cannot multuply... pls transpose");
+    }
+    if(v.getSize() != M.get_rows())
+    {
+        throw std::invalid_argument("vector cannot multuply. Different size");
+    }
+
+    Vector<T> res(M.get_rows(), 0, v.isColumn());
+
+    for(size_t i = 0; i < M.get_cols(); i++)
+    {
+        T val = 0;
+        for(size_t j = 0; j < v.getSize(); j++)
+        {
+            val += M(i, j) * v[j];
+        }
+        res.set(i, val);
+    }
+
+    return res;
+
+}
+
+template <typename T>
+Vector<T> operator*(T scalar, const Vector<T>& vec)
+{
+    Vector<T> res(vec.getSize(), 1, vec.isColumn());
+    for(size_t i = 0; i < vec.getSize(); i++)
+    {
+        res.set(i, scalar * vec[i]);
+    }
+    
+    return res;
+}
 
 
 }//LIN SPACE
