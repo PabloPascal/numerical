@@ -5,6 +5,8 @@
 #include <vector>
 #include <random>
 
+
+
 namespace LIN{
 
 template <typename T>
@@ -154,6 +156,7 @@ Matrix<T> operator*(const Matrix<T>& A, const Matrix<T>& B)
 
     Matrix<T> C(A.get_rows(), B.get_cols());
 
+#pragma omp parallel for
     for(size_t i = 0; i < A.get_rows(); i++)
     {
         for(size_t j = 0; j < B.get_cols(); j++)
@@ -413,6 +416,25 @@ Vector<T> operator*(T scalar, const Vector<T>& vec)
     
     return res;
 }
+
+template <typename T>
+Vector<T> operator+(const Vector<T>& v1, const Vector<T>& v2)
+{
+
+    if(v1.getSize() != v2.getSize())
+    {
+        throw std::invalid_argument("difference dimension");
+    }
+
+    Vector<T> res(v1.getSize());
+    for(size_t i = 0; i < v1.getSize(); i++)
+    {
+        T s = v1[i] + v2[i];
+        res.set(i,s);
+    }
+    return res;
+}
+
 
 
 }//LIN SPACE
