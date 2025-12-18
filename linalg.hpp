@@ -35,6 +35,24 @@ private:
 
 public:
 
+    Matrix(size_t rows, size_t cols, std::initializer_list<T> values)
+    {
+        if(rows * cols != values.size())
+        {
+            throw "MATRIX CONSTRUCTOR (rows, cols, std::initializer_list):\n \
+            the initializing values do not match the size";
+        }
+        _rows = rows;
+        _cols = cols;
+        resize();
+        
+        for(size_t i = 0; i < rows; i++){
+            for(size_t j = 0; j < cols; j++){
+                _data[i][j] = *(values.begin() + i*cols + j);
+            }
+        }
+    }
+
     Matrix(size_t rows, size_t cols, T init_value = 0) : _rows(rows), _cols(cols)
     {
         resize();
@@ -61,9 +79,14 @@ public:
         }
     }
 
+    T& operator()(size_t i, size_t j) {
+        return _data[i][j];
+    }
+
     T operator()(size_t i, size_t j) const {
         return _data[i][j];
     }
+   
     Matrix& operator=(const Matrix& M)
     {
         if(_cols != M._cols || _rows != M._rows)
@@ -74,6 +97,7 @@ public:
         copy(M);
         return *this;
     }
+   
     void set(size_t i, size_t j, T value){
         _data[i][j] = value;
     }
@@ -116,18 +140,23 @@ public:
         return *this;
     }
 
-    void random_init()
+    void random_init(int leftLimit = 0, int rightLimit = 100, bool normalize = false)
     {
+        if(leftLimit > rightLimit) std::swap(leftLimit, rightLimit);
         std::random_device rd;
         static std::mt19937 gen(rd()); 
-        std::uniform_int_distribution<> dis(1, 100);
+        std::uniform_int_distribution<> dis(leftLimit, rightLimit);
+        int length = rightLimit - leftLimit;
 
         for(size_t i = 0; i < _rows; i++)
         {
             for(size_t j = 0; j < _cols; j++)
             {
                 T random_num = dis(gen);
-                _data[i][j] = random_num;
+                if(normalize)
+                    _data[i][j] = random_num / (double)length;
+                else 
+                    _data[i][j] = random_num;
             }
         }
     }
@@ -199,6 +228,30 @@ Matrix<T> operator+(const Matrix<T>& A, const Matrix<T>& B)
 }
 
 template <typename T>
+Matrix<T> operator-(const Matrix<T>& A, const Matrix<T>& B)
+{
+    if(A.get_cols() != B.get_cols() || A.get_rows() != B.get_rows())
+    {
+        throw std::invalid_argument("bad dimensions");
+    }
+
+    size_t n = A.get_cols();
+    size_t m = B.get_rows();
+
+    Matrix<T> C(n, m);
+
+    for(size_t i = 0; i < n; i++)
+    {
+        for(size_t j = 0; j < m; j++)
+        {
+            T s = A(i, j) - B(i, j);
+            C.set(i, j, s);
+        }
+    }
+    return C;
+}
+
+template <typename T>
 Matrix<T> operator*(const T scalar, const Matrix<T>& A)
 {
     size_t n = A.get_cols();
@@ -261,33 +314,17 @@ Matrix<T> hadamarProduct(const Matrix<T>& A, const Matrix<T>& B)
 }
 
 
-//MATRIX TYPE
-template <typename T>
-class Identity : public Matrix<T>
-{
-public:
-    Identity(size_t N) : Matrix<T>(N, N)
-    {
-
-        for(size_t i = 0; i < N; i++)
-        {
-            for(size_t j = 0; j < N; j++)
-            {
-                if(i != j)
-                    this->_data[i][j] = 0;
-                if(i == j)
-                    this->_data[i][j] = 1;
-            }
-        }
-
-    }
-
-};
 
 
 template <typename T>
 class Vector{
 public:
+
+    Vector(std::initializer_list<T> values, bool column_vector = true)
+    {
+        _data = values;
+        _column_vector = column_vector;
+    }
 
     Vector(size_t N, T init_value = 0, bool column_vector = true)
     {
@@ -299,6 +336,11 @@ public:
         _data = v._data;
         _column_vector = v._column_vector;
     }
+
+    T& operator[](size_t index) 
+    {
+        return _data[index];
+    } 
 
     T operator[](size_t index) const 
     {
@@ -323,6 +365,18 @@ public:
 
     bool isColumn() const {return _column_vector;}
 
+    void random_init()
+    {
+        std::random_device rd;
+        static std::mt19937 gen(rd()); 
+        std::uniform_int_distribution<> dis(1, 100);
+
+        for(size_t i = 0; i < _data.size(); i++)
+        {
+            _data[i] = dis(gen);
+        }
+
+    }
 
 private:
     bool            _column_vector;
@@ -435,6 +489,32 @@ Vector<T> operator+(const Vector<T>& v1, const Vector<T>& v2)
     return res;
 }
 
+
+template <typename T>
+Vector<T> operator-(const Vector<T>& v1, const Vector<T>& v2)
+{
+
+    if(v1.getSize() != v2.getSize())
+    {
+        throw std::invalid_argument("difference dimension");
+    }
+
+    Vector<T> res(v1.getSize());
+    for(size_t i = 0; i < v1.getSize(); i++)
+    {
+        T s = v1[i] - v2[i];
+        res.set(i,s);
+    }
+    return res;
+}
+
+
+
+template <typename T>
+double len(const Vector<T>& v1)
+{
+    return std::sqrt(dot_product(v1, v1));
+}
 
 
 }//LIN SPACE
