@@ -10,6 +10,9 @@
 namespace LIN{
 
 template <typename T>
+class Vector;
+
+template <typename T>
 class Matrix
 {
 private:
@@ -68,6 +71,14 @@ public:
 
     }
 
+    Matrix(Matrix&& matrix)
+    {
+        _data = std::move(matrix._data);
+        _cols = matrix._cols;
+        _rows = matrix._rows;
+        
+    }
+
     void fill(T value)
     {
         for(size_t i = 0; i < _rows; i++)
@@ -87,6 +98,33 @@ public:
         return _data[i][j];
     }
    
+    Vector<T> operator[](size_t i){
+        if(i >= _rows)
+        {
+            throw std::out_of_range("index out of range");
+        }
+        Vector<T> row(_data[i], false);
+        return row;
+    }
+
+    Vector<T> get_column(size_t index)
+    {
+        std::vector<T> column(_rows);
+
+        for(size_t i = 0; i < _rows; i++)
+        {
+            column[i] = _data[i][index];
+        }
+
+        return Vector(column);
+
+    }
+
+    Vector<T> get_row(size_t index)
+    {
+        return this->operator[](index);
+    }
+
     Matrix& operator=(const Matrix& M)
     {
         if(_cols != M._cols || _rows != M._rows)
@@ -94,10 +132,20 @@ public:
             throw std::length_error("not same size");
         }
 
-        copy(M);
+        _data = M._data;
         return *this;
     }
-   
+    Matrix& operator=(Matrix&& M)
+    {
+        if(_cols != M._cols || _rows != M._rows)
+        {
+            throw std::length_error("not same size");
+        }
+
+        _data = std::move(M._data);
+        return *this;
+    }
+
     void set(size_t i, size_t j, T value){
         _data[i][j] = value;
     }
@@ -163,6 +211,30 @@ public:
 
     size_t get_cols() const {return _cols;} 
     size_t get_rows() const {return _rows;}
+
+    void swap_rows(size_t i, size_t j)
+    {
+        if(i >= _rows || j >= _rows)
+        {
+            throw std::out_of_range("i or j bigger than num rows");
+        }
+
+        std::swap(_data[i], _data[j]);
+    }
+
+    void swap_cols(size_t i, size_t j)
+    {
+        if(i >= _cols || j >= _cols)
+        {
+            throw std::out_of_range("i or j bigger than num cols");
+        }
+
+        for(size_t k = 0; k < _rows; k++)
+        {
+            std::swap(_data[k][i], _data[k][j]);
+        }
+    }
+
 
 protected:
 
@@ -320,6 +392,12 @@ template <typename T>
 class Vector{
 public:
 
+    Vector(const std::vector<T>& container, bool column_vector = true)
+    {
+        _column_vector = column_vector;
+        _data = container;
+    }
+
     Vector(std::initializer_list<T> values, bool column_vector = true)
     {
         _data = values;
@@ -336,6 +414,12 @@ public:
         _data = v._data;
         _column_vector = v._column_vector;
     }
+    Vector(Vector&& v)
+    {
+        _data = std::move(v._data);
+        _column_vector = v._column_vector;
+    }
+
 
     T& operator[](size_t index) 
     {
@@ -349,9 +433,30 @@ public:
 
     Vector& operator=(const Vector& vec)
     {
-        _data.clear();
+        if(_column_vector != vec._column_vector)
+        {
+            throw std::invalid_argument("different type");
+        }
+        if(_data.size() != vec._data.size())
+        {
+            throw std::invalid_argument("different size");
+        }
+
         _data = vec._data;
-        _column_vector = vec._column_vector;
+        return *this;
+    }
+    Vector& operator=(Vector&& vec)
+    {
+        if(_column_vector != vec._column_vector)
+        {
+            throw std::invalid_argument("different type");
+        }
+        if(_data.size() != vec._data.size())
+        {
+            throw std::invalid_argument("different size");
+        }
+        _data = std::move(vec._data);
+        return *this;
     }
 
     void set(size_t index, T value) {_data[index] = value;}
