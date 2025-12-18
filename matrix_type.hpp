@@ -14,6 +14,8 @@ double PI = 3.14159265359;
 
 using matrix_d = Matrix<double>;
 using matrix_f = Matrix<float>;
+using vec_d = Vector<double>;
+using vec_f = Vector<float>;
 
 
 template <typename T>

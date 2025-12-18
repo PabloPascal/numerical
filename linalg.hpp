@@ -38,7 +38,75 @@ private:
 
 public:
 
-    Matrix(size_t rows, size_t cols, std::initializer_list<T> values)
+    Matrix(const std::vector<std::vector<T>>& matrix_data)
+    {
+
+        if(matrix_data.size() <= 0)
+        {
+            throw std::invalid_argument("matrix data is null");
+        }
+
+        _rows = matrix_data.size();
+        _cols = matrix_data[0].size();
+        
+        _data = matrix_data; 
+    }
+
+
+    Matrix(std::vector<std::vector<T>>&& matrix_data)
+    {
+
+        if(matrix_data.size() <= 0)
+        {
+            throw std::invalid_argument("matrix data is null");
+        }
+
+        _rows = matrix_data.size();
+        _cols = matrix_data[0].size();
+        
+        _data = std::move(matrix_data); 
+    }
+
+
+
+    Matrix(size_t rows, size_t cols, const std::vector<T>& values)
+    {
+        if(rows * cols != values.size())
+        {
+            throw "MATRIX CONSTRUCTOR (rows, cols, std::initializer_list):\n \
+            the initializing values do not match the size";
+        }
+        _rows = rows;
+        _cols = cols;
+        resize();
+        
+        for(size_t i = 0; i < rows; i++){
+            for(size_t j = 0; j < cols; j++){
+                _data[i][j] = values[i * _cols + j];
+            }
+        }
+    }
+
+    Matrix(size_t rows, size_t cols, std::vector<T>&& values)
+    {
+        if(rows * cols != values.size())
+        {
+            throw "MATRIX CONSTRUCTOR (rows, cols, std::initializer_list):\n \
+            the initializing values do not match the size";
+        }
+        _rows = rows;
+        _cols = cols;
+        resize();
+        
+        for(size_t i = 0; i < rows; i++){
+            for(size_t j = 0; j < cols; j++){
+                _data[i][j] = std::move(values[i * _cols + j]);
+            }
+        }
+    }
+
+
+    Matrix(size_t rows, size_t cols, const std::initializer_list<T>& values)
     {
         if(rows * cols != values.size())
         {
@@ -56,19 +124,35 @@ public:
         }
     }
 
+    Matrix(size_t rows, size_t cols, std::initializer_list<T>&& values)
+    {
+        if(rows * cols != values.size())
+        {
+            throw "MATRIX CONSTRUCTOR (rows, cols, std::initializer_list):\n \
+            the initializing values do not match the size";
+        }
+        _rows = rows;
+        _cols = cols;
+        resize();
+        
+        for(size_t i = 0; i < rows; i++){
+            for(size_t j = 0; j < cols; j++){
+                _data[i][j] = std::move(*(values.begin() + i*cols + j));
+            }
+        }
+    }
+
+
+
     Matrix(size_t rows, size_t cols, T init_value = 0) : _rows(rows), _cols(cols)
     {
         resize();
         fill(init_value);
     } 
 
-    Matrix(const Matrix& matrix){
-        _rows = matrix._rows;
-        _cols = matrix._cols;
-
-        resize();
-        copy(matrix);
-
+    Matrix(const Matrix& matrix) : _rows(matrix._rows), _cols(matrix._cols)
+    {
+        _data = matrix._data;
     }
 
     Matrix(Matrix&& matrix)
@@ -391,6 +475,12 @@ Matrix<T> hadamarProduct(const Matrix<T>& A, const Matrix<T>& B)
 template <typename T>
 class Vector{
 public:
+    Vector(std::vector<T>&& container, bool column_vector = true)
+    {
+        _column_vector = column_vector;
+        _data = std::move(container);
+    }
+
 
     Vector(const std::vector<T>& container, bool column_vector = true)
     {
@@ -398,9 +488,15 @@ public:
         _data = container;
     }
 
-    Vector(std::initializer_list<T> values, bool column_vector = true)
+    Vector(const std::initializer_list<T>& values, bool column_vector = true)
     {
         _data = values;
+        _column_vector = column_vector;
+    }
+
+    Vector(std::initializer_list<T>&& values, bool column_vector = true)
+    {
+        _data = std::move(values);
         _column_vector = column_vector;
     }
 
