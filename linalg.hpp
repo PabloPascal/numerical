@@ -1,5 +1,5 @@
-#ifndef __LINALG__
-#define __LINALG__
+#ifndef LINALG_HPP
+#define LINALG_HPP
 
 #include <cstddef>
 #include <vector>
@@ -305,9 +305,9 @@ public:
         if(_cols == _rows){
             for(size_t i = 0; i < _rows; i++)
             {
-                for(size_t j = 0; j < _cols; j++)
+                for(size_t j = i; j < _cols; j++)
                 {
-                    _data[i][j] = _data[j][i];
+                    std::swap(_data[i][j], _data[j][i]);
                 }
             }
         }else{
