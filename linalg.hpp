@@ -5,6 +5,10 @@
 #include <vector>
 #include <random>
 
+#ifdef _WIN32
+#include <omp.h>
+#endif 
+
 
 
 namespace LIN{
@@ -233,6 +237,68 @@ public:
     void set(size_t i, size_t j, T value){
         _data[i][j] = value;
     }
+
+    void set_column(size_t column_number, const Vector<T>& column)
+    {
+
+        if(column_number > _cols || column.getSize() != _rows)
+        {
+            throw std::out_of_range("index out of range");
+        }
+
+        for(size_t i = 0; i < _rows; i++)
+        {
+            _data[i][column_number] = column[i];
+        }
+
+
+    }
+    void set_row(size_t row_number, const Vector<T>& row)
+    {
+
+        if(row_number > _cols || row.getSize() != _cols)
+        {
+            throw std::out_of_range("index out of range");
+        }
+
+        for(size_t i = 0; i < _cols; i++)
+        {
+            _data[row_number][i] = row[i];
+        }
+
+    }
+
+    void set_column(size_t column_number, Vector<T>&& column)
+    {
+
+        if(column_number > _cols || column.getSize() != _rows)
+        {
+            throw std::out_of_range("index out of range");
+        }
+
+        for(size_t i = 0; i < _rows; i++)
+        {
+            _data[i][column_number] = column[i];
+        }
+
+
+    }
+    void set_row(size_t row_number, Vector<T>&& row)
+    {
+
+        if(row_number > _cols || row.getSize() != _cols)
+        {
+            throw std::out_of_range("index out of range");
+        }
+
+        for(size_t i = 0; i < _cols; i++)
+        {
+            _data[row_number][i] = row[i];
+        }
+
+    }
+
+
 
     Matrix& transpose()
     {
