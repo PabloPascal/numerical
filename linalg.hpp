@@ -187,12 +187,13 @@ public:
         {
             throw std::out_of_range("index out of range");
         }
-        Vector<T> row(_data[i], false);
-        return row;
+        return Vector<T>(_data[i], false);
     }
 
     Vector<T> get_column(size_t index)
     {
+        if(index > _cols) throw std::out_of_range("index bigger than num of columns");
+
         std::vector<T> column(_rows);
 
         for(size_t i = 0; i < _rows; i++)
@@ -201,7 +202,6 @@ public:
         }
 
         return Vector(column);
-
     }
 
     Vector<T> get_row(size_t index)
@@ -475,6 +475,34 @@ Matrix<T> hadamarProduct(const Matrix<T>& A, const Matrix<T>& B)
 template <typename T>
 class Vector{
 public:
+
+    using iterator = typename std::vector<T>::iterator;
+    using const_iterator =typename std::vector<T>::const_iterator;
+
+    iterator begin()
+    {
+        return _data.begin();
+    }
+    iterator end()
+    {
+        return _data.end();
+    }
+
+    iterator operator+(iterator it)
+    {
+        _current = _data.begin() + it;
+        return _current;
+    }
+
+    bool operator!=(iterator it)
+    {
+        if(_current != it)
+            return true;
+        
+        return false;
+    }
+
+
     Vector(std::vector<T>&& container, bool column_vector = true)
     {
         _column_vector = column_vector;
@@ -582,6 +610,7 @@ public:
 private:
     bool            _column_vector;
     std::vector<T>  _data;
+    iterator        _current;
 };
 
 
