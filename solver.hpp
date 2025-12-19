@@ -64,7 +64,7 @@ public:
         if(A.get_cols() != A.get_rows() || 
             A.get_rows() != b.getSize())
         {
-            throw "cannot work with non square matrix";
+            throw std::invalid_argument("cannot work with non square matrix");
         }
 
         size_t size = A.get_cols();
@@ -139,7 +139,7 @@ public:
         Matrix<T> X(N, N);
 
         for(size_t i = 0; i < N; i++){
-            Matrix<T> A_copy = A;
+            Matrix<T> A_copy(A);
             X.set_column(i, Solver::GausseSolverSystem(std::move(A_copy), I.get_column(i)));
         }
 

@@ -30,9 +30,9 @@ public:
             for(size_t j = 0; j < N; j++)
             {
                 if(i != j)
-                    this->_data[i][j] = 0;
+                    this->_data[i * this->_cols + j] = 0;
                 if(i == j)
-                    this->_data[i][j] = 1;
+                    this->_data[i * this->_cols + j] = 1;
             }
         }
 
@@ -48,10 +48,10 @@ public:
     {
         double radian = angle * PI / 180;
 
-        this->_data[0][0] = cos(radian);
-        this->_data[0][1] =-sin(radian);
-        this->_data[1][0] = sin(radian);
-        this->_data[1][1] = cos(radian);
+        this->_data[0 + 0] = cos(radian);
+        this->_data[0 + 1] =-sin(radian);
+        this->_data[1 + 1] = sin(radian);
+        this->_data[1 + 2] = cos(radian);
     }
 };
 

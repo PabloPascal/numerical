@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <vector>
 #include <random>
+#include <iterator>
 
 #ifdef _WIN32
 #include <omp.h>
@@ -23,11 +24,7 @@ private:
 
     void resize()
     {
-        _data.resize(_rows);
-        for(size_t i = 0; i < _rows; i++)
-        {
-            _data[i].resize(_cols);
-        }
+        _data.resize(_rows * _cols);
     }
     void copy(const Matrix& matrix)
     {
@@ -35,7 +32,7 @@ private:
         {
             for(size_t j = 0; j < _cols; j++)
             {
-                _data[i][j] = matrix._data[i][j];
+                _data[i * _cols + j] = matrix._data[i*_cols + j];
             }
         }
     }
@@ -44,7 +41,6 @@ public:
 
     Matrix(const std::vector<std::vector<T>>& matrix_data)
     {
-
         if(matrix_data.size() <= 0)
         {
             throw std::invalid_argument("matrix data is null");
@@ -52,23 +48,28 @@ public:
 
         _rows = matrix_data.size();
         _cols = matrix_data[0].size();
-        
-        _data = matrix_data; 
+        _data.reserve(_rows * _cols);
+
+        for(size_t i = 0; i < _rows; i++){
+            _data.insert(_data.end(), matrix_data[i].begin(), matrix_data[i].end());
+        }
     }
 
 
     Matrix(std::vector<std::vector<T>>&& matrix_data)
     {
-
-        if(matrix_data.size() <= 0)
+if(matrix_data.size() <= 0)
         {
             throw std::invalid_argument("matrix data is null");
         }
 
         _rows = matrix_data.size();
         _cols = matrix_data[0].size();
-        
-        _data = std::move(matrix_data); 
+        _data.reserve(_rows * _cols);
+
+        for(size_t i = 0; i < _rows; i++){
+            _data.insert(_data.end(), matrix_data[i].begin(), matrix_data[i].end());
+        }
     }
 
 
@@ -86,7 +87,7 @@ public:
         
         for(size_t i = 0; i < rows; i++){
             for(size_t j = 0; j < cols; j++){
-                _data[i][j] = values[i * _cols + j];
+                _data[i * _cols + j] = values[i * _cols + j];
             }
         }
     }
@@ -104,7 +105,7 @@ public:
         
         for(size_t i = 0; i < rows; i++){
             for(size_t j = 0; j < cols; j++){
-                _data[i][j] = std::move(values[i * _cols + j]);
+                _data[i * _cols + j] = values[i * _cols + j];
             }
         }
     }
@@ -123,7 +124,7 @@ public:
         
         for(size_t i = 0; i < rows; i++){
             for(size_t j = 0; j < cols; j++){
-                _data[i][j] = *(values.begin() + i*cols + j);
+                _data[i*_cols + j] = *(values.begin() + i*cols + j);
             }
         }
     }
@@ -141,7 +142,7 @@ public:
         
         for(size_t i = 0; i < rows; i++){
             for(size_t j = 0; j < cols; j++){
-                _data[i][j] = std::move(*(values.begin() + i*cols + j));
+                _data[i*_cols + j] = std::move(*(values.begin() + i*cols + j));
             }
         }
     }
@@ -159,12 +160,9 @@ public:
         _data = matrix._data;
     }
 
-    Matrix(Matrix&& matrix)
+    Matrix(Matrix&& matrix) noexcept : _cols(matrix._cols), _rows(matrix._rows) 
     {
-        _data = std::move(matrix._data);
-        _cols = matrix._cols;
-        _rows = matrix._rows;
-        
+        _data = std::move(matrix._data);        
     }
 
     void fill(T value)
@@ -173,39 +171,42 @@ public:
         {
             for(size_t j = 0; j < _cols; j++)
             {
-                _data[i][j] = value;
+                _data[i* _cols + j] = value;
             }
         }
     }
 
     T& operator()(size_t i, size_t j) {
-        return _data[i][j];
+        return _data[i*_cols + j];
     }
 
     T operator()(size_t i, size_t j) const {
-        return _data[i][j];
+        return _data[i*_cols + j];
     }
    
-    Vector<T> operator[](size_t i){
+    Vector<T> operator[](size_t i)
+    {
         if(i >= _rows)
         {
             throw std::out_of_range("index out of range");
         }
-        return Vector<T>(_data[i], false);
+        typename std::vector<T>::iterator start = _data.begin() + i * _cols;
+        typename std::vector<T>::iterator end = _data.begin() + (1 + i) * _cols;
+        return Vector<T>(start, end, false);
     }
 
     Vector<T> get_column(size_t index)
     {
-        if(index > _cols) throw std::out_of_range("index bigger than num of columns");
+        if(index >= _cols) throw std::out_of_range("index bigger than num of columns");
 
-        std::vector<T> column(_rows);
-
+        std::vector<T> column;
+        column.reserve(_rows);
         for(size_t i = 0; i < _rows; i++)
         {
-            column[i] = _data[i][index];
+            column.emplace_back(_data[i * _cols + index]);
         }
 
-        return Vector(column);
+        return Vector<T>(column, true);
     }
 
     Vector<T> get_row(size_t index)
@@ -219,7 +220,6 @@ public:
         {
             throw std::length_error("not same size");
         }
-
         _data = M._data;
         return *this;
     }
@@ -229,43 +229,24 @@ public:
         {
             throw std::length_error("not same size");
         }
-
         _data = std::move(M._data);
         return *this;
     }
 
     void set(size_t i, size_t j, T value){
-        _data[i][j] = value;
+        _data[i * _cols + j] = value;
     }
 
     void set_column(size_t column_number, const Vector<T>& column)
     {
-
         if(column_number > _cols || column.getSize() != _rows)
         {
             throw std::out_of_range("index out of range");
         }
-
         for(size_t i = 0; i < _rows; i++)
         {
-            _data[i][column_number] = column[i];
+            _data[i*_cols + column_number] = column[i];
         }
-
-
-    }
-    void set_row(size_t row_number, const Vector<T>& row)
-    {
-
-        if(row_number > _cols || row.getSize() != _cols)
-        {
-            throw std::out_of_range("index out of range");
-        }
-
-        for(size_t i = 0; i < _cols; i++)
-        {
-            _data[row_number][i] = row[i];
-        }
-
     }
 
     void set_column(size_t column_number, Vector<T>&& column)
@@ -275,29 +256,35 @@ public:
         {
             throw std::out_of_range("index out of range");
         }
-
         for(size_t i = 0; i < _rows; i++)
         {
-            _data[i][column_number] = column[i];
+            _data[i*_cols + column_number] = column[i];
         }
-
-
     }
-    void set_row(size_t row_number, Vector<T>&& row)
-    {
 
+    void set_row(size_t row_number, const Vector<T>& row)
+    {
         if(row_number > _cols || row.getSize() != _cols)
         {
             throw std::out_of_range("index out of range");
         }
-
         for(size_t i = 0; i < _cols; i++)
         {
-            _data[row_number][i] = row[i];
+            _data[row_number * _cols + i] = row[i];
         }
-
     }
 
+    void set_row(size_t row_number, Vector<T>&& row)
+    {
+        if(row_number > _cols || row.getSize() != _cols)
+        {
+            throw std::out_of_range("index out of range");
+        }
+        for(size_t i = 0; i < _cols; i++)
+        {
+            _data[row_number * _cols + i] = row[i];
+        }
+    }
 
 
     Matrix& transpose()
@@ -307,7 +294,7 @@ public:
             {
                 for(size_t j = i; j < _cols; j++)
                 {
-                    std::swap(_data[i][j], _data[j][i]);
+                    std::swap(_data[i * _cols + j], _data[j * _rows + i]);
                 }
             }
         }else{
@@ -315,17 +302,13 @@ public:
             size_t new_rows = _cols;
             size_t new_cols = _rows;
 
-            std::vector<std::vector<T>> new_data(new_rows);
-            for(size_t i = 0; i < new_rows; i++)
-            {
-                new_data[i].resize(new_cols);
-            }
+            std::vector<T> new_data(new_rows * new_cols);
 
             for(size_t i = 0; i < _rows; i++)
             {
                 for(size_t j = 0; j < _cols; j++)
                 {
-                    new_data[j][i] = _data[i][j];
+                    new_data[j * _rows + i] = _data[i * _cols + j];
                 }
             }
 
@@ -352,9 +335,9 @@ public:
             {
                 T random_num = dis(gen);
                 if(normalize)
-                    _data[i][j] = random_num / (double)length;
+                    _data[i * _cols + j] = random_num / (double)length;
                 else 
-                    _data[i][j] = random_num;
+                    _data[i * _cols + j] = random_num;
             }
         }
     }
@@ -368,8 +351,9 @@ public:
         {
             throw std::out_of_range("i or j bigger than num rows");
         }
-
-        std::swap(_data[i], _data[j]);
+        for(size_t k = 0; k < _cols; k++){
+            std::swap(_data[i*_cols + k], _data[j * _cols + k]);
+        }
     }
 
     void swap_cols(size_t i, size_t j)
@@ -378,10 +362,9 @@ public:
         {
             throw std::out_of_range("i or j bigger than num cols");
         }
-
         for(size_t k = 0; k < _rows; k++)
         {
-            std::swap(_data[k][i], _data[k][j]);
+            std::swap(_data[k * _cols + i], _data[k * _cols + j]);
         }
     }
 
@@ -391,7 +374,7 @@ protected:
     size_t _rows;
     size_t _cols;
 
-    std::vector<std::vector<T>> _data;
+    std::vector<T> _data;
 
 
 };
@@ -610,6 +593,12 @@ public:
         _column_vector = v._column_vector;
     }
 
+    Vector(typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end, bool column_vector = true)
+    {
+        _data.insert(_data.begin(), begin, end);
+        _column_vector = column_vector;
+    }
+
 
     T& operator[](size_t index) 
     {
@@ -672,6 +661,15 @@ public:
         }
 
     }
+
+    void normalize()
+    {
+        for(size_t i = 0; i < _data.size(); i++)
+        {
+            _data[i] = _data[i] / len(*this);
+        }
+    }
+
 
 private:
     bool            _column_vector;
@@ -814,5 +812,8 @@ double len(const Vector<T>& v1)
 
 
 }//LIN SPACE
+
+
+
 
 #endif 
