@@ -681,7 +681,7 @@ public:
             _data[i] = _data[i] / len(*this);
         }
 
-        return this;
+        return *this;
     }
 
 
