@@ -38,12 +38,15 @@ public:
 
     }
 
+
+
 };
 
 
 class Rotation2 : public Matrix<double>
 {
 public:
+
     Rotation2(double angle) : Matrix<double>(2,2)
     {
         double radian = angle * PI / 180;

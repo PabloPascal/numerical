@@ -114,7 +114,7 @@ public:
         {
             throw std::invalid_argument("not square matrix");
         }
-
+        
         Matrix<T> B(A);
         Vector<T> x(A.get_cols());
         Solver::GausseSolverSystem(B, x);

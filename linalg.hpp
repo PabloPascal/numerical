@@ -673,6 +673,18 @@ public:
 
     }
 
+    Vector<T>& normalize()
+    {
+
+        for(size_t i = 0; i < _data.size(); i++)
+        {
+            _data[i] = _data[i] / len(*this);
+        }
+
+        return this;
+    }
+
+
 private:
     bool            _column_vector;
     std::vector<T>  _data;
