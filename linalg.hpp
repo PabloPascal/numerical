@@ -416,8 +416,8 @@ Matrix<T> operator+(const Matrix<T>& A, const Matrix<T>& B)
         throw std::invalid_argument("bad dimensions");
     }
 
-    size_t n = A.get_cols();
-    size_t m = B.get_rows();
+    size_t n = A.get_rows();
+    size_t m = B.get_cols();
 
     Matrix<T> C(n, m);
 
@@ -440,8 +440,8 @@ Matrix<T> operator-(const Matrix<T>& A, const Matrix<T>& B)
         throw std::invalid_argument("bad dimensions");
     }
 
-    size_t n = A.get_cols();
-    size_t m = B.get_rows();
+    size_t n = A.get_rows();
+    size_t m = B.get_cols();
 
     Matrix<T> C(n, m);
 
@@ -459,8 +459,8 @@ Matrix<T> operator-(const Matrix<T>& A, const Matrix<T>& B)
 template <typename T>
 Matrix<T> operator*(const T scalar, const Matrix<T>& A)
 {
-    size_t n = A.get_cols();
-    size_t m = A.get_rows();
+    size_t n = A.get_rows();
+    size_t m = A.get_cols();
 
     Matrix<T> C(n, m);
 
@@ -478,8 +478,8 @@ Matrix<T> operator*(const T scalar, const Matrix<T>& A)
 template <typename T>
 Matrix<T> operator*(const Matrix<T>& A, const T scalar)
 {
-    size_t n = A.get_cols();
-    size_t m = A.get_rows();
+    size_t n = A.get_rows();
+    size_t m = A.get_cols();
 
     Matrix<T> C(n, m);
 
@@ -502,8 +502,8 @@ Matrix<T> hadamarProduct(const Matrix<T>& A, const Matrix<T>& B)
         throw std::invalid_argument("bad dimensions");
     }
 
-    size_t n = A.get_cols();
-    size_t m = B.get_rows();
+    size_t n = A.get_rows();
+    size_t m = B.get_cols();
 
     Matrix<T> C(n, m);
 
