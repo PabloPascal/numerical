@@ -393,14 +393,12 @@ Matrix<T> operator*(const Matrix<T>& A, const Matrix<T>& B)
 #pragma omp parallel for
     for(size_t i = 0; i < A.get_rows(); i++)
     {
-        for(size_t j = 0; j < B.get_cols(); j++)
+        for(size_t k = 0; k < B.get_cols(); k++)
         {
-            T s = 0;
-            for(size_t k = 0; k < A.get_cols(); k++)
+            for(size_t j = 0; j < A.get_cols(); j++)
             {
-                s += A(i, k) * B(k, j);
+                C(i, j) += A(i, k) * B(k, j);
             }
-            C.set(i, j, s); 
         }
     }
 
