@@ -390,7 +390,7 @@ Matrix<T> operator*(const Matrix<T>& A, const Matrix<T>& B)
 
     Matrix<T> C(A.get_rows(), B.get_cols());
 
-#pragma omp parallel for
+#pragma omp parallel for collapse(2)
     for(size_t i = 0; i < A.get_rows(); i++)
     {
         for(size_t k = 0; k < B.get_cols(); k++)
@@ -647,15 +647,20 @@ public:
 
     bool isColumn() const {return _column_vector;}
 
-    void random_init()
+    void random_init(int leftLimit = 0, int rightLimit = 100, bool normalize = false)
     {
+        if(leftLimit > rightLimit) std::swap(leftLimit, rightLimit);
         std::random_device rd;
         static std::mt19937 gen(rd()); 
-        std::uniform_int_distribution<> dis(1, 100);
+        std::uniform_int_distribution<> dis(leftLimit, rightLimit);
+        int length = rightLimit - leftLimit;
 
         for(size_t i = 0; i < _data.size(); i++)
         {
-            _data[i] = dis(gen);
+            if(normalize)
+                _data[i] = dis(gen) / double(length);
+            else
+                _data[i] = dis(gen);
         }
 
     }
