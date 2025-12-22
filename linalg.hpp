@@ -39,6 +39,9 @@ private:
 
 public:
 
+    Matrix() : _cols(0), _rows(0)
+    {}
+
     Matrix(const std::vector<std::vector<T>>& matrix_data)
     {
         if(matrix_data.size() <= 0)
@@ -216,19 +219,17 @@ if(matrix_data.size() <= 0)
 
     Matrix& operator=(const Matrix& M)
     {
-        if(_cols != M._cols || _rows != M._rows)
-        {
-            throw std::length_error("not same size");
-        }
+        _cols = M._cols;
+        _rows = M._rows;
+
         _data = M._data;
         return *this;
     }
     Matrix& operator=(Matrix&& M)
     {
-        if(_cols != M._cols || _rows != M._rows)
-        {
-            throw std::length_error("not same size");
-        }
+        _cols = M._cols;
+        _rows = M._rows;
+
         _data = std::move(M._data);
         return *this;
     }
@@ -549,6 +550,8 @@ public:
         return false;
     }
 
+    Vector() : _column_vector(true)
+    {}
 
     Vector(std::vector<T>&& container, bool column_vector = true)
     {
@@ -610,28 +613,15 @@ public:
 
     Vector& operator=(const Vector& vec)
     {
-        if(_column_vector != vec._column_vector)
-        {
-            throw std::invalid_argument("different type");
-        }
-        if(_data.size() != vec._data.size())
-        {
-            throw std::invalid_argument("different size");
-        }
-
+        _column_vector = vec._column_vector;
+        
         _data = vec._data;
         return *this;
     }
     Vector& operator=(Vector&& vec)
     {
-        if(_column_vector != vec._column_vector)
-        {
-            throw std::invalid_argument("different type");
-        }
-        if(_data.size() != vec._data.size())
-        {
-            throw std::invalid_argument("different size");
-        }
+        _column_vector = vec._column_vector;
+
         _data = std::move(vec._data);
         return *this;
     }
