@@ -841,6 +841,30 @@ Vector<T> hadamar_product(const Vector<T>& v,const Vector<T>& u)
 }
 
 
+template <typename T>
+Matrix<T> transpose(const Matrix<T>& m)
+{
+
+    size_t _cols = m.get_cols();
+    size_t _rows = m.get_rows();
+
+    Matrix<T> Result(_cols, _rows);
+
+    for(size_t i = 0; i < _rows; i++)
+        {
+        for(size_t j = 0; j < _cols; j++)
+        {
+            Result(j,i) = m(i,j);
+        }
+    }
+    
+
+    return Result;
+}
+
+
+
+
 
 }//LIN SPACE
 
