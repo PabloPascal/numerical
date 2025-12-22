@@ -814,8 +814,28 @@ double len(const Vector<T>& v1)
 }
 
 
-}//LIN SPACE
 
+template <typename T>
+Matrix<T> outer_product(const Vector<T>& v1, const Vector<T>& v2)
+{
+
+    Matrix<T> result(v1.getSize(), v2.getSize());
+
+    for(size_t i = 0; i < v1.getSize(); i++)
+    {
+        for(size_t j = 0; j < v2.getSize(); j++)
+        {
+            result(i, j) = v1[i] * v2[j];
+        }
+    }
+
+    return result;
+
+}
+
+
+
+}//LIN SPACE
 
 
 
