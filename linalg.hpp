@@ -494,7 +494,7 @@ Matrix<T> operator*(const Matrix<T>& A, const T scalar)
 }
 
 template <typename T>
-Matrix<T> hadamarProduct(const Matrix<T>& A, const Matrix<T>& B)
+Matrix<T> hadamar_product(const Matrix<T>& A, const Matrix<T>& B)
 {
     if(A.get_cols() != B.get_cols() || A.get_rows() != B.get_rows())
     {
@@ -821,6 +821,23 @@ Matrix<T> outer_product(const Vector<T>& v1, const Vector<T>& v2)
 
     return result;
 
+}
+
+
+template <typename T>
+Vector<T> hadamar_product(const Vector<T>& v,const Vector<T>& u)
+{
+    if(v.getSize() != u.getSize()) throw std::invalid_argument("not same size");
+    if(v.isColumn() != u.isColumn()) throw std::invalid_argument("not same type of vector (column vs row)");
+
+    size_t len = v.getSize();
+    Vector<T> res(len, 0, v.isColumn());
+
+    for(size_t i = 0; i < len; i++)
+    {
+        res[i] = v[i] * u[i];
+    }
+    return res;
 }
 
 
