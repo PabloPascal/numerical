@@ -10,7 +10,6 @@
 namespace LIN
 {
 
-double PI = 3.14159265359;
 
 using matrix_d = Matrix<double>;
 using matrix_f = Matrix<float>;
@@ -43,6 +42,8 @@ public:
 
 class Rotation2 : public Matrix<double>
 {
+    double PI = 3.14159265359;
+
 public:
     Rotation2(double angle) : Matrix<double>(2,2)
     {
