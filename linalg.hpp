@@ -5,861 +5,181 @@
 #include <vector>
 #include <random>
 #include <iterator>
-
-#ifdef _WIN32
+#include <concepts>
+#include <type_traits>
+#include <utility>
 #include <omp.h>
-#endif 
+#include <algorithm> // для std::min
 
 
 
-namespace LIN{
 
-template <typename T>
-class Vector;
+namespace linalg{
 
-template <typename T>
-class Matrix
+template <std::floating_point T> 
+class Tensor
 {
-private:
-
-    void resize()
-    {
-        _data.resize(_rows * _cols);
-    }
-    void copy(const Matrix& matrix)
-    {
-        for(size_t i = 0; i < _rows; i++)
-        {
-            for(size_t j = 0; j < _cols; j++)
-            {
-                _data[i * _cols + j] = matrix._data[i*_cols + j];
-            }
-        }
-    }
-
-public:
-
-    Matrix() : _cols(0), _rows(0)
-    {}
-
-    Matrix(const std::vector<std::vector<T>>& matrix_data)
-    {
-        if(matrix_data.size() <= 0)
-        {
-            throw std::invalid_argument("matrix data is null");
-        }
-
-        _rows = matrix_data.size();
-        _cols = matrix_data[0].size();
-        _data.reserve(_rows * _cols);
-
-        for(size_t i = 0; i < _rows; i++){
-            _data.insert(_data.end(), matrix_data[i].begin(), matrix_data[i].end());
-        }
-    }
-
-
-    Matrix(std::vector<std::vector<T>>&& matrix_data)
-    {
-if(matrix_data.size() <= 0)
-        {
-            throw std::invalid_argument("matrix data is null");
-        }
-
-        _rows = matrix_data.size();
-        _cols = matrix_data[0].size();
-        _data.reserve(_rows * _cols);
-
-        for(size_t i = 0; i < _rows; i++){
-            _data.insert(_data.end(), matrix_data[i].begin(), matrix_data[i].end());
-        }
-    }
-
-
-
-    Matrix(size_t rows, size_t cols, const std::vector<T>& values)
-    {
-        if(rows * cols != values.size())
-        {
-            throw "MATRIX CONSTRUCTOR (rows, cols, std::initializer_list):\n \
-            the initializing values do not match the size";
-        }
-        _rows = rows;
-        _cols = cols;
-        resize();
-        
-        for(size_t i = 0; i < rows; i++){
-            for(size_t j = 0; j < cols; j++){
-                _data[i * _cols + j] = values[i * _cols + j];
-            }
-        }
-    }
-
-    Matrix(size_t rows, size_t cols, std::vector<T>&& values)
-    {
-        if(rows * cols != values.size())
-        {
-            throw "MATRIX CONSTRUCTOR (rows, cols, std::initializer_list):\n \
-            the initializing values do not match the size";
-        }
-        _rows = rows;
-        _cols = cols;
-        resize();
-        
-        for(size_t i = 0; i < rows; i++){
-            for(size_t j = 0; j < cols; j++){
-                _data[i * _cols + j] = values[i * _cols + j];
-            }
-        }
-    }
-
-
-    Matrix(size_t rows, size_t cols, const std::initializer_list<T>& values)
-    {
-        if(rows * cols != values.size())
-        {
-            throw "MATRIX CONSTRUCTOR (rows, cols, std::initializer_list):\n \
-            the initializing values do not match the size";
-        }
-        _rows = rows;
-        _cols = cols;
-        resize();
-        
-        for(size_t i = 0; i < rows; i++){
-            for(size_t j = 0; j < cols; j++){
-                _data[i*_cols + j] = *(values.begin() + i*cols + j);
-            }
-        }
-    }
-
-    Matrix(size_t rows, size_t cols, std::initializer_list<T>&& values)
-    {
-        if(rows * cols != values.size())
-        {
-            throw "MATRIX CONSTRUCTOR (rows, cols, std::initializer_list):\n \
-            the initializing values do not match the size";
-        }
-        _rows = rows;
-        _cols = cols;
-        resize();
-        
-        for(size_t i = 0; i < rows; i++){
-            for(size_t j = 0; j < cols; j++){
-                _data[i*_cols + j] = std::move(*(values.begin() + i*cols + j));
-            }
-        }
-    }
-
-
-
-    Matrix(size_t rows, size_t cols, T init_value = 0) : _rows(rows), _cols(cols)
-    {
-        resize();
-        fill(init_value);
-    } 
-
-    Matrix(const Matrix& matrix) : _rows(matrix._rows), _cols(matrix._cols)
-    {
-        _data = matrix._data;
-    }
-
-    Matrix(Matrix&& matrix) noexcept : _cols(matrix._cols), _rows(matrix._rows) 
-    {
-        _data = std::move(matrix._data);        
-    }
-
-    void fill(T value)
-    {
-        for(size_t i = 0; i < _rows; i++)
-        {
-            for(size_t j = 0; j < _cols; j++)
-            {
-                _data[i* _cols + j] = value;
-            }
-        }
-    }
-
-    T& operator()(size_t i, size_t j) {
-        return _data[i*_cols + j];
-    }
-
-    T operator()(size_t i, size_t j) const {
-        return _data[i*_cols + j];
-    }
-   
-    Vector<T> operator[](size_t i)
-    {
-        if(i >= _rows)
-        {
-            throw std::out_of_range("index out of range");
-        }
-        typename std::vector<T>::iterator start = _data.begin() + i * _cols;
-        typename std::vector<T>::iterator end = _data.begin() + (1 + i) * _cols;
-        return Vector<T>(start, end, false);
-    }
-
-    Vector<T> get_column(size_t index)
-    {
-        if(index >= _cols) throw std::out_of_range("index bigger than num of columns");
-
-        std::vector<T> column;
-        column.reserve(_rows);
-        for(size_t i = 0; i < _rows; i++)
-        {
-            column.emplace_back(_data[i * _cols + index]);
-        }
-
-        return Vector<T>(column, true);
-    }
-
-    Vector<T> get_row(size_t index)
-    {
-        return this->operator[](index);
-    }
-
-    Matrix& operator=(const Matrix& M)
-    {
-        _cols = M._cols;
-        _rows = M._rows;
-
-        _data = M._data;
-        return *this;
-    }
-    Matrix& operator=(Matrix&& M)
-    {
-        _cols = M._cols;
-        _rows = M._rows;
-
-        _data = std::move(M._data);
-        return *this;
-    }
-
-    void set(size_t i, size_t j, T value){
-        _data[i * _cols + j] = value;
-    }
-
-    void set_column(size_t column_number, const Vector<T>& column)
-    {
-        if(column_number > _cols || column.getSize() != _rows)
-        {
-            throw std::out_of_range("index out of range");
-        }
-        for(size_t i = 0; i < _rows; i++)
-        {
-            _data[i*_cols + column_number] = column[i];
-        }
-    }
-
-    void set_column(size_t column_number, Vector<T>&& column)
-    {
-
-        if(column_number > _cols || column.getSize() != _rows)
-        {
-            throw std::out_of_range("index out of range");
-        }
-        for(size_t i = 0; i < _rows; i++)
-        {
-            _data[i*_cols + column_number] = column[i];
-        }
-    }
-
-    void set_row(size_t row_number, const Vector<T>& row)
-    {
-        if(row_number > _cols || row.getSize() != _cols)
-        {
-            throw std::out_of_range("index out of range");
-        }
-        for(size_t i = 0; i < _cols; i++)
-        {
-            _data[row_number * _cols + i] = row[i];
-        }
-    }
-
-    void set_row(size_t row_number, Vector<T>&& row)
-    {
-        if(row_number > _cols || row.getSize() != _cols)
-        {
-            throw std::out_of_range("index out of range");
-        }
-        for(size_t i = 0; i < _cols; i++)
-        {
-            _data[row_number * _cols + i] = row[i];
-        }
-    }
-
-
-    Matrix& transpose()
-    {
-        if(_cols == _rows){
-            for(size_t i = 0; i < _rows; i++)
-            {
-                for(size_t j = i; j < _cols; j++)
-                {
-                    std::swap(_data[i * _cols + j], _data[j * _rows + i]);
-                }
-            }
-        }else{
-
-            size_t new_rows = _cols;
-            size_t new_cols = _rows;
-
-            std::vector<T> new_data(new_rows * new_cols);
-
-            for(size_t i = 0; i < _rows; i++)
-            {
-                for(size_t j = 0; j < _cols; j++)
-                {
-                    new_data[j * _rows + i] = _data[i * _cols + j];
-                }
-            }
-
-            _data = new_data;
-            _cols = new_cols;
-            _rows = new_rows;
-        
-        }
-
-        return *this;
-    }
-
-    void random_init(int leftLimit = 0, int rightLimit = 100, bool normalize = false)
-    {
-        if(leftLimit > rightLimit) std::swap(leftLimit, rightLimit);
-        std::random_device rd;
-        static std::mt19937 gen(rd()); 
-        std::uniform_int_distribution<> dis(leftLimit, rightLimit);
-        int length = rightLimit - leftLimit;
-
-        for(size_t i = 0; i < _rows; i++)
-        {
-            for(size_t j = 0; j < _cols; j++)
-            {
-                T random_num = dis(gen);
-                if(normalize)
-                    _data[i * _cols + j] = random_num / (double)length;
-                else 
-                    _data[i * _cols + j] = random_num;
-            }
-        }
-    }
-
-    size_t get_cols() const {return _cols;} 
-    size_t get_rows() const {return _rows;}
-
-    void swap_rows(size_t i, size_t j)
-    {
-        if(i >= _rows || j >= _rows)
-        {
-            throw std::out_of_range("i or j bigger than num rows");
-        }
-        for(size_t k = 0; k < _cols; k++){
-            std::swap(_data[i*_cols + k], _data[j * _cols + k]);
-        }
-    }
-
-    void swap_cols(size_t i, size_t j)
-    {
-        if(i >= _cols || j >= _cols)
-        {
-            throw std::out_of_range("i or j bigger than num cols");
-        }
-        for(size_t k = 0; k < _rows; k++)
-        {
-            std::swap(_data[k * _cols + i], _data[k * _cols + j]);
-        }
-    }
-
-
-protected:
-
     size_t _rows;
     size_t _cols;
 
     std::vector<T> _data;
+public:
 
+    Tensor() : _rows(0), _cols(0) {}
 
-};
-
-template <typename T>
-Matrix<T> operator*(const Matrix<T>& A, const Matrix<T>& B)
-{
-    if(A.get_cols() != B.get_rows())
+    //initialization with init value 
+    Tensor(size_t rows, size_t cols, T init_value = 0) : _rows(rows), _cols(cols)
     {
-        throw std::length_error("cannot multiply matrix because of dimensions");
+        _data.resize(_rows * _cols);
+        std::fill(_data.begin(), _data.end(), init_value);
+    } 
+
+    //random initialization
+    Tensor(size_t rows, size_t cols, std::pair<T, T> interval, bool normalize = false) : _rows(rows), _cols(cols)
+    {
+        _data.resize(_rows * _cols);
+        random_init(interval, normalize);
+    } 
+    
+    Tensor(size_t rows, size_t cols, const std::vector<T>& data) : _rows(rows), _cols(cols)
+    {
+        if(data.size() != cols * rows) 
+            throw std::length_error("different size with data in constructor");
+        
+        _data = data;
+
+    }
+    Tensor(size_t rows, size_t cols, std::vector<T>&& data) : _rows(rows), _cols(cols)
+    {
+        if(data.size() != cols * rows) 
+            throw std::length_error("different size with data in constructor");
+        
+        _data = std::move(data);
+
     }
 
 
-    Matrix<T> C(A.get_rows(), B.get_cols());
 
-#pragma omp parallel for collapse(2)
-    for(size_t i = 0; i < A.get_rows(); i++)
+
+    void random_init(std::pair<T, T> interval, bool normalize = false)
     {
-        for(size_t k = 0; k < B.get_cols(); k++)
-        {
-            for(size_t j = 0; j < A.get_cols(); j++)
-            {
-                C(i, j) += A(i, k) * B(k, j);
+        T left = interval.first;
+        T right = interval.second;
+
+        static std::random_device rd;
+        static std::mt19937 gen(rd());
+        std::uniform_real_distribution<T> dis(static_cast<T>(left), static_cast<T>(right));
+       
+        const T range = static_cast<T>(right - left);
+
+        for(size_t i = 0; i < _rows*_cols; i++){
+            T val = dis(gen);
+            if (normalize) val /= range;
+            _data[i] = val;
+        }
+    }
+
+    size_t cols() const {return _cols;}
+    size_t rows() const {return _rows;}
+
+
+    std::vector<T> get_data() const {return _data;}
+    const std::vector<T>& get_ref_data() const {return _data;}
+    const T* data() const { return _data.data(); }
+    T* data() { return _data.data(); }
+
+
+    T operator()(size_t i, size_t j) const 
+    {
+        return _data[_cols * i + j];
+    } 
+
+    T& operator()(size_t i, size_t j) 
+    {
+        return _data[_cols * i + j];
+    } 
+
+};
+
+
+template <std::floating_point T> 
+Tensor<T> operator*(const Tensor<T>& A, const Tensor<T>& B)
+{
+
+    if(A.cols() != B.rows())
+        throw std::length_error("different size");         
+
+    
+    const size_t M = A.rows();   // строки результата
+    const size_t N = B.cols();   // столбцы результата
+    const size_t K = A.cols();   // внутренняя размерность
+
+    Tensor<T> C(M, N, T(0));     // инициализируем нулями
+
+    const T* A_data = A.data();
+    const T* B_data = B.data();
+    T*       C_data = C.data();
+
+    // Размер блока – подбирается под размер кэша L2 (обычно 64–128)
+    const size_t BLOCK = 64;
+
+#pragma omp parallel for collapse(2) schedule(dynamic)
+
+    for (size_t i0 = 0; i0 < M; i0 += BLOCK) {
+        size_t i_end = std::min(i0 + BLOCK, M);
+
+        for (size_t j0 = 0; j0 < N; j0 += BLOCK) {
+            size_t j_end = std::min(j0 + BLOCK, N);
+
+            for (size_t k0 = 0; k0 < K; k0 += BLOCK) {
+                size_t k_end = std::min(k0 + BLOCK, K);
+
+                // Обработка текущего блока
+                for (size_t i = i0; i < i_end; ++i) {
+                    T* C_row = C_data + i * N;          // строка результата
+                    const T* A_row = A_data + i * K;    // строка A
+
+                    for (size_t k = k0; k < k_end; ++k) {
+                        T a_ik = A_row[k];
+                        if (a_ik == T(0)) continue;    // пропуск нулей (опционально)
+                        const T* B_row = B_data + k * N; // строка B
+
+                        // SIMD-векторизация внутреннего цикла по j
+                        #pragma omp simd
+                        for (size_t j = j0; j < j_end; ++j) {
+                            C_row[j] += a_ik * B_row[j];
+                        }
+                    }
+                }
             }
         }
     }
 
+
+    return C;
+}    
+
+
+
+template <std::floating_point T> 
+Tensor<T> operator+(const Tensor<T>& A, const Tensor<T>& B)
+{
+    if(A.cols() != B.cols() || A.rows() != B.rows())
+        throw std::length_error("different size");
+
+    size_t num_cols = A.cols();
+    size_t num_rows = A.rows();
+
+    Tensor<T> C(num_rows, num_cols);
+
+    for(size_t i = 0; i < num_cols; i++){
+        for(size_t j = 0; j < num_rows; j++){
+            C(i,j) = A(i, j) + B(i, j);
+        }
+    }
+
     return C;
 
-}
-
-template <typename T>
-Matrix<T> operator+(const Matrix<T>& A, const Matrix<T>& B)
-{
-    if(A.get_cols() != B.get_cols() || A.get_rows() != B.get_rows())
-    {
-        throw std::invalid_argument("bad dimensions");
-    }
-
-    size_t n = A.get_rows();
-    size_t m = B.get_cols();
-
-    Matrix<T> C(n, m);
-
-    for(size_t i = 0; i < n; i++)
-    {
-        for(size_t j = 0; j < m; j++)
-        {
-            T s = A(i, j) + B(i, j);
-            C.set(i, j, s);
-        }
-    }
-    return C;
-}
-
-template <typename T>
-Matrix<T> operator-(const Matrix<T>& A, const Matrix<T>& B)
-{
-    if(A.get_cols() != B.get_cols() || A.get_rows() != B.get_rows())
-    {
-        throw std::invalid_argument("bad dimensions");
-    }
-
-    size_t n = A.get_rows();
-    size_t m = B.get_cols();
-
-    Matrix<T> C(n, m);
-
-    for(size_t i = 0; i < n; i++)
-    {
-        for(size_t j = 0; j < m; j++)
-        {
-            T s = A(i, j) - B(i, j);
-            C.set(i, j, s);
-        }
-    }
-    return C;
-}
-
-template <typename T>
-Matrix<T> operator*(const T scalar, const Matrix<T>& A)
-{
-    size_t n = A.get_rows();
-    size_t m = A.get_cols();
-
-    Matrix<T> C(n, m);
-
-    for(size_t i = 0; i < n; i++)
-    {
-        for(size_t j = 0; j < m; j++)
-        {
-            T s = scalar * A(i, j);
-            C.set(i, j, s);
-        }
-    }
-    return C;
-}
-
-template <typename T>
-Matrix<T> operator*(const Matrix<T>& A, const T scalar)
-{
-    size_t n = A.get_rows();
-    size_t m = A.get_cols();
-
-    Matrix<T> C(n, m);
-
-    for(size_t i = 0; i < n; i++)
-    {
-        for(size_t j = 0; j < m; j++)
-        {
-            T s = scalar * A(i, j);
-            C.set(i, j, s);
-        }
-    }
-    return C;
-}
-
-template <typename T>
-Matrix<T> hadamar_product(const Matrix<T>& A, const Matrix<T>& B)
-{
-    if(A.get_cols() != B.get_cols() || A.get_rows() != B.get_rows())
-    {
-        throw std::invalid_argument("bad dimensions");
-    }
-
-    size_t n = A.get_rows();
-    size_t m = B.get_cols();
-
-    Matrix<T> C(n, m);
-
-    for(size_t i = 0; i < n; i++)
-    {
-        for(size_t j = 0; j < m; j++)
-        {
-            T s = A(i, j) * B(i, j);
-            C.set(i, j, s);
-        }
-    }
-    return C;
-}
-
-
-
-
-template <typename T>
-class Vector{
-public:
-
-    using iterator = typename std::vector<T>::iterator;
-    using const_iterator =typename std::vector<T>::const_iterator;
-
-    iterator begin()
-    {
-        return _data.begin();
-    }
-    iterator end()
-    {
-        return _data.end();
-    }
-
-    iterator operator+(iterator it)
-    {
-        _current = _data.begin() + it;
-        return _current;
-    }
-
-    bool operator!=(iterator it)
-    {
-        if(_current != it)
-            return true;
-        
-        return false;
-    }
-
-    Vector() : _column_vector(true)
-    {}
-
-    Vector(std::vector<T>&& container, bool column_vector = true)
-    {
-        _column_vector = column_vector;
-        _data = std::move(container);
-    }
-
-
-    Vector(const std::vector<T>& container, bool column_vector = true)
-    {
-        _column_vector = column_vector;
-        _data = container;
-    }
-
-    Vector(const std::initializer_list<T>& values, bool column_vector = true)
-    {
-        _data = values;
-        _column_vector = column_vector;
-    }
-
-    Vector(std::initializer_list<T>&& values, bool column_vector = true)
-    {
-        _data = std::move(values);
-        _column_vector = column_vector;
-    }
-
-    Vector(size_t N, T init_value = 0, bool column_vector = true)
-    {
-        _data.resize(N, init_value);
-        _column_vector = column_vector;
-    }
-    Vector(const Vector& v)
-    {
-        _data = v._data;
-        _column_vector = v._column_vector;
-    }
-    Vector(Vector&& v)
-    {
-        _data = std::move(v._data);
-        _column_vector = v._column_vector;
-    }
-
-    Vector(typename std::vector<T>::iterator begin, typename std::vector<T>::iterator end, bool column_vector = true)
-    {
-        _data.insert(_data.begin(), begin, end);
-        _column_vector = column_vector;
-    }
-
-
-    T& operator[](size_t index) 
-    {
-        return _data[index];
-    } 
-
-    T operator[](size_t index) const 
-    {
-        return _data[index];
-    } 
-
-    Vector& operator=(const Vector& vec)
-    {
-        _column_vector = vec._column_vector;
-        
-        _data = vec._data;
-        return *this;
-    }
-    Vector& operator=(Vector&& vec)
-    {
-        _column_vector = vec._column_vector;
-
-        _data = std::move(vec._data);
-        return *this;
-    }
-
-    void set(size_t index, T value) {_data[index] = value;}
-    size_t getSize() const {return _data.size();}
-
-    Vector& transpose()
-    {
-        _column_vector = false;
-        return *this;
-    }
-
-    bool isColumn() const {return _column_vector;}
-
-    void random_init(int leftLimit = 0, int rightLimit = 100, bool normalize = false)
-    {
-        if(leftLimit > rightLimit) std::swap(leftLimit, rightLimit);
-        std::random_device rd;
-        static std::mt19937 gen(rd()); 
-        std::uniform_int_distribution<> dis(leftLimit, rightLimit);
-        int length = rightLimit - leftLimit;
-
-        for(size_t i = 0; i < _data.size(); i++)
-        {
-            if(normalize)
-                _data[i] = dis(gen) / double(length);
-            else
-                _data[i] = dis(gen);
-        }
-
-    }
-
-    void normalize()
-    {
-        for(size_t i = 0; i < _data.size(); i++)
-        {
-            _data[i] = _data[i] / len(*this);
-        }
-    }
-
-
-private:
-    bool            _column_vector;
-    std::vector<T>  _data;
-    iterator        _current;
-};
-
-
-template <typename T>
-T dot_product(const Vector<T>& v1, const Vector<T>& v2){
-
-    if(v1.getSize() != v2.getSize()){
-        throw std::invalid_argument("not the same size!");
-    }
-    
-    T res = 0;
-    for(size_t i = 0; i < v1.getSize(); i++)
-    {
-        res += v1[i] * v2[i];
-    }
-
-    return res;
-}
-
-
-template <typename T>
-Vector<T> operator*(const Matrix<T>& M, const Vector<T>& v)
-{
-    if(!v.isColumn())
-    {
-        throw std::invalid_argument("vector cannot multuply... pls transpose");
-    }
-    if(v.getSize() != M.get_cols())
-    {
-        throw std::invalid_argument("vector cannot multuply. Different size");
-    }
-
-    Vector<T> res(M.get_rows(), 0, v.isColumn());
-
-    for(size_t i = 0; i < M.get_rows(); i++)
-    {
-        T val = 0;
-        for(size_t j = 0; j < v.getSize(); j++)
-        {
-            val += M(i, j) * v[j];
-        }
-        res.set(i, val);
-    }
-
-    return res;
-
-}
-
-
-
-template <typename T>
-Vector<T> operator*(const Vector<T>& v, const Matrix<T>& M)
-{
-    if(v.isColumn())
-    {
-        throw std::invalid_argument("vector cannot multuply... pls transpose");
-    }
-    if(v.getSize() != M.get_rows())
-    {
-        throw std::invalid_argument("vector cannot multuply. Different size");
-    }
-
-    Vector<T> res(M.get_rows(), 0, v.isColumn());
-
-    for(size_t i = 0; i < M.get_cols(); i++)
-    {
-        T val = 0;
-        for(size_t j = 0; j < v.getSize(); j++)
-        {
-            val += M(i, j) * v[j];
-        }
-        res.set(i, val);
-    }
-
-    return res;
-
-}
-
-template <typename T>
-Vector<T> operator*(T scalar, const Vector<T>& vec)
-{
-    Vector<T> res(vec.getSize(), 1, vec.isColumn());
-    for(size_t i = 0; i < vec.getSize(); i++)
-    {
-        res.set(i, scalar * vec[i]);
-    }
-    
-    return res;
-}
-
-template <typename T>
-Vector<T> operator+(const Vector<T>& v1, const Vector<T>& v2)
-{
-
-    if(v1.getSize() != v2.getSize())
-    {
-        throw std::invalid_argument("difference dimension");
-    }
-
-    Vector<T> res(v1.getSize());
-    for(size_t i = 0; i < v1.getSize(); i++)
-    {
-        T s = v1[i] + v2[i];
-        res.set(i,s);
-    }
-    return res;
-}
-
-
-template <typename T>
-Vector<T> operator-(const Vector<T>& v1, const Vector<T>& v2)
-{
-
-    if(v1.getSize() != v2.getSize())
-    {
-        throw std::invalid_argument("difference dimension");
-    }
-
-    Vector<T> res(v1.getSize());
-    for(size_t i = 0; i < v1.getSize(); i++)
-    {
-        T s = v1[i] - v2[i];
-        res.set(i,s);
-    }
-    return res;
-}
-
-
-
-template <typename T>
-double len(const Vector<T>& v1)
-{
-    return std::sqrt(dot_product(v1, v1));
-}
-
-
-
-template <typename T>
-Matrix<T> outer_product(const Vector<T>& v1, const Vector<T>& v2)
-{
-
-    Matrix<T> result(v1.getSize(), v2.getSize());
-
-    for(size_t i = 0; i < v1.getSize(); i++)
-    {
-        for(size_t j = 0; j < v2.getSize(); j++)
-        {
-            result(i, j) = v1[i] * v2[j];
-        }
-    }
-
-    return result;
-
-}
-
-
-template <typename T>
-Vector<T> hadamar_product(const Vector<T>& v,const Vector<T>& u)
-{
-    if(v.getSize() != u.getSize()) throw std::invalid_argument("not same size");
-    if(v.isColumn() != u.isColumn()) throw std::invalid_argument("not same type of vector (column vs row)");
-
-    size_t len = v.getSize();
-    Vector<T> res(len, 0, v.isColumn());
-
-    for(size_t i = 0; i < len; i++)
-    {
-        res[i] = v[i] * u[i];
-    }
-    return res;
-}
-
-
-template <typename T>
-Matrix<T> transpose(const Matrix<T>& m)
-{
-
-    size_t _cols = m.get_cols();
-    size_t _rows = m.get_rows();
-
-    Matrix<T> Result(_cols, _rows);
-
-    for(size_t i = 0; i < _rows; i++)
-        {
-        for(size_t j = 0; j < _cols; j++)
-        {
-            Result(j,i) = m(i,j);
-        }
-    }
-    
-
-    return Result;
 }
 
 
