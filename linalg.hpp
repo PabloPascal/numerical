@@ -9,8 +9,7 @@
 #include <type_traits>
 #include <utility>
 #include <omp.h>
-#include <algorithm> // для std::min
-
+#include <algorithm> 
 
 
 
@@ -110,17 +109,16 @@ Tensor<T> operator*(const Tensor<T>& A, const Tensor<T>& B)
         throw std::length_error("different size");         
 
     
-    const size_t M = A.rows();   // строки результата
-    const size_t N = B.cols();   // столбцы результата
-    const size_t K = A.cols();   // внутренняя размерность
+    const size_t M = A.rows();   
+    const size_t N = B.cols();   
+    const size_t K = A.cols();   
 
-    Tensor<T> C(M, N, T(0));     // инициализируем нулями
-
+    Tensor<T> C(M, N, T(0));     
+    
     const T* A_data = A.data();
     const T* B_data = B.data();
     T*       C_data = C.data();
 
-    // Размер блока – подбирается под размер кэша L2 (обычно 64–128)
     const size_t BLOCK = 64;
 
 #pragma omp parallel for collapse(2) schedule(dynamic)
@@ -134,17 +132,15 @@ Tensor<T> operator*(const Tensor<T>& A, const Tensor<T>& B)
             for (size_t k0 = 0; k0 < K; k0 += BLOCK) {
                 size_t k_end = std::min(k0 + BLOCK, K);
 
-                // Обработка текущего блока
                 for (size_t i = i0; i < i_end; ++i) {
-                    T* C_row = C_data + i * N;          // строка результата
-                    const T* A_row = A_data + i * K;    // строка A
+                    T* C_row = C_data + i * N;          
+                    const T* A_row = A_data + i * K;    
 
                     for (size_t k = k0; k < k_end; ++k) {
                         T a_ik = A_row[k];
-                        if (a_ik == T(0)) continue;    // пропуск нулей (опционально)
-                        const T* B_row = B_data + k * N; // строка B
+                        if (a_ik == T(0)) continue;    
+                        const T* B_row = B_data + k * N; 
 
-                        // SIMD-векторизация внутреннего цикла по j
                         #pragma omp simd
                         for (size_t j = j0; j < j_end; ++j) {
                             C_row[j] += a_ik * B_row[j];
@@ -172,6 +168,7 @@ Tensor<T> operator+(const Tensor<T>& A, const Tensor<T>& B)
 
     Tensor<T> C(num_rows, num_cols);
 
+#pragma omp parallel for collapse(2) schedule(dynamic)
     for(size_t i = 0; i < num_cols; i++){
         for(size_t j = 0; j < num_rows; j++){
             C(i,j) = A(i, j) + B(i, j);
