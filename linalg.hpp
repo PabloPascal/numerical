@@ -18,6 +18,7 @@ namespace linalg{
 template <std::floating_point T> 
 class Tensor
 {
+protected:
     size_t _rows;
     size_t _cols;
 
@@ -154,6 +155,48 @@ public:
 };
 
 
+template <std::floating_point T>
+class vec : public Tensor<T> 
+{
+public:
+    vec(size_t size) : Tensor<T>(size, 1){}
+
+    vec(size_t size, std::vector<T> data) : Tensor<T>(size, 1, data){}
+
+    vec(size_t size, T init_value) : Tensor<T>(size, 1, init_value){}
+
+    vec(size_t size, std::pair<T, T> interval, bool normalize = false) : Tensor<T>(size, 1, interval, normalize){}
+
+    vec(const Tensor<T>& tensor) : Tensor<T>(tensor){
+        if(!(tensor.cols() == 1 || tensor.rows() == 1)){
+            throw std::invalid_argument("not a vector tensor");
+        }
+    }
+
+    T length(){
+        T sq_sum = 0;
+        for(size_t i = 0; i < this->_rows; ++i){
+            sq_sum += this->_data[i] * this->_data[i];
+        }
+        return std::sqrt(sq_sum);
+    }
+
+    T& operator[](size_t i){
+        return this->_data[i];
+    } 
+
+    T operator[](size_t i) const {
+        return this->_data[i];
+    }
+
+    size_t size() const{
+        return this->_rows * this->_cols;
+    }
+
+};
+
+
+
 template <std::floating_point T> 
 Tensor<T> operator*(const Tensor<T>& A, const Tensor<T>& B)
 {
@@ -238,7 +281,7 @@ Tensor<T> operator+(const Tensor<T>& A, const Tensor<T>& B)
 
 
 template <std::floating_point T> 
-T dot_product(const Tensor<T>& a, const Tensor<T>& b){
+T dot_product(const vec<T>& a, const vec<T>& b){
 
     if(!(a.cols() == 1 || a.rows() == 1)) throw std::invalid_argument("not a vector!");
     if(!(b.cols() == 1 || b.rows() == 1)) throw std::invalid_argument("not a vector!");
@@ -354,14 +397,38 @@ Tensor<T> apply(const Tensor<T>& a, Func&& func){
 
 
 
-template <std::floating_point T, typename Func>
-Tensor<T> cross(const Tensor<T>& a, const Tensor<T>& b){
-    
+template <std::floating_point T>
+Tensor<T> cross(const vec<T>& a, const vec<T>& b){
 
+    if(a.rows() * a.cols() != b.rows() * b.cols() && a.rows() * a.cols() != 3) 
+        throw std::invalid_argument("not valid size, should be 3d vectors");
+
+    const T* a_data = a.data();
+    const T* b_data = b.data();
+
+    T c1 = a_data[1] * b_data[2] - b_data[1] * a_data[2];
+    T c2 = -(a_data[0]*b_data[2] - b_data[0]*a_data[2]);
+    T c3 = a_data[0]*b_data[1] - b_data[0]*a_data[1];
+
+    Tensor<T> C(3, 1, {c1, c2, c3});
+
+    return C;
 }
 
 
+template <std::floating_point T>
+Tensor<T> outer_product(const vec<T>& vec1, const vec<T>& vec2){
 
+    Tensor<T> C(vec1.size(), vec2.size());
+    
+    for(size_t i = 0; i < vec1.size(); i++){
+        for(size_t j = 0; j < vec2.size(); j++){
+            C(i, j) = vec1[i]*vec2[j];
+        }
+    }
+
+    return C;
+}
 
 
 }//LIN SPACE

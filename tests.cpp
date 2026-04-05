@@ -116,8 +116,8 @@ void test_sum()
 
 void test_mult()
 {
-    linalg::Tensor<float> a(1,3, {1,2,3});
-    linalg::Tensor<float> b(1,3, {2,2,2});
+    linalg::vec<float> a(3, {1,2,3});
+    linalg::vec<float> b(3, {2,2,2});
 
     float dot = linalg::dot_product(a,b);
 
@@ -146,8 +146,8 @@ void test_transpose()
 
 void test_hadamar()
 {
-    linalg::Tensor<float> a(3,2, {1,2,3,4,5,6});
-    linalg::Tensor<float> b(3,2, 2);
+    linalg::vec<float> a(5, {1,2,3,4,5});
+    linalg::vec<float> b(5, 2);
     
     auto c = linalg::hadamar_product(a, b);
     
@@ -177,5 +177,17 @@ void test_apply_func()
     auto c = linalg::apply<float>(a, func);
     
     print_matrix(c);
+
+}
+
+
+
+void test_cross_product(){
+    linalg::vec<float> v1(3, {1,2,2});
+    linalg::vec<float> v2(3, {2,1,3});
+
+    auto v3 = linalg::cross(v1, v2);
+
+    print_matrix(v3);
 
 }
