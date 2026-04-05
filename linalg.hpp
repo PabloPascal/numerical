@@ -98,6 +98,59 @@ public:
         return _data[_cols * i + j];
     } 
 
+
+    void transpose() {
+    if (_rows != _cols) {
+        Tensor<T> temp(_cols, _rows);
+        const size_t rows = _rows, cols = _cols;
+        const T* src = _data.data();
+        T* dst = temp._data.data();
+        const size_t BLOCK = 32;
+        for (size_t i = 0; i < rows; i += BLOCK) {
+            size_t i_end = std::min(i + BLOCK, rows);
+            for (size_t j = 0; j < cols; j += BLOCK) {
+                size_t j_end = std::min(j + BLOCK, cols);
+                for (size_t ii = i; ii < i_end; ++ii) {
+                    const T* src_row = src + ii * cols;
+                    for (size_t jj = j; jj < j_end; ++jj) {
+                        dst[jj * rows + ii] = src_row[jj];
+                    }
+                }
+            }
+        }
+        _rows = temp._rows;
+        _cols = temp._cols;
+        _data = std::move(temp._data);
+        return;
+    }
+
+    const size_t n = _rows;
+    T* data = _data.data();
+    const size_t BLOCK = 32;
+
+    for (size_t i = 0; i < n; i += BLOCK) {
+        size_t i_end = std::min(i + BLOCK, n);
+        for (size_t j = i; j < n; j += BLOCK) {
+            size_t j_end = std::min(j + BLOCK, n);
+            if (i == j) {
+                for (size_t ii = i; ii < i_end; ++ii) {
+                    T* row = data + ii * n;
+                    for (size_t jj = std::max(j, ii + 1); jj < j_end; ++jj) {
+                        std::swap(row[jj], data[jj * n + ii]);
+                    }
+                }
+            } else {
+                for (size_t ii = i; ii < i_end; ++ii) {
+                    T* row_ii = data + ii * n;
+                    for (size_t jj = j; jj < j_end; ++jj) {
+                        std::swap(row_ii[jj], data[jj * n + ii]);
+                    }
+                }
+            }
+        }
+    }
+    }
+
 };
 
 
@@ -163,16 +216,19 @@ Tensor<T> operator+(const Tensor<T>& A, const Tensor<T>& B)
     if(A.cols() != B.cols() || A.rows() != B.rows())
         throw std::length_error("different size");
 
-    size_t num_cols = A.cols();
-    size_t num_rows = A.rows();
+    
+    Tensor<T> C(A.rows(), A.cols());
 
-    Tensor<T> C(num_rows, num_cols);
 
-#pragma omp parallel for collapse(2) schedule(dynamic)
-    for(size_t i = 0; i < num_cols; i++){
-        for(size_t j = 0; j < num_rows; j++){
-            C(i,j) = A(i, j) + B(i, j);
-        }
+    const T* Adata = A.data();  
+    const T* Bdata = B.data(); 
+    T* Cdata = C.data();
+
+    size_t full_size = A.cols() * A.rows();
+
+ #pragma omp parallel for simd schedule(static)    
+ for(size_t i = 0; i < full_size; ++i){
+        Cdata[i] = Adata[i] + Bdata[i];
     }
 
     return C;
@@ -181,9 +237,137 @@ Tensor<T> operator+(const Tensor<T>& A, const Tensor<T>& B)
 
 
 
+template <std::floating_point T> 
+T dot_product(const Tensor<T>& a, const Tensor<T>& b){
+
+    if(!(a.cols() == 1 || a.rows() == 1)) throw std::invalid_argument("not a vector!");
+    if(!(b.cols() == 1 || b.rows() == 1)) throw std::invalid_argument("not a vector!");
+    
+    size_t a_vec_size = std::max(a.cols(), a.rows());
+    size_t b_vec_size = std::max(b.cols(), b.rows());
+
+    if(a_vec_size != b_vec_size) throw std::invalid_argument("not same size!");
+
+    const T* a_data = a.data();
+    const T* b_data = b.data();
+
+    T result = (T)0;
+
+    for(size_t i=0; i < a_vec_size; ++i){
+        result += a_data[i]*b_data[i];
+    }
+    return result;
+}
+
+
+
+template <std::floating_point T>
+Tensor<T> transpose(const Tensor<T>& A) {
+    const size_t rows = A.rows();
+    const size_t cols = A.cols();
+    Tensor<T> C(cols, rows);
+
+    const T* A_data = A.data();
+    T* C_data = C.data();
+
+    const size_t BLOCK = 32;  // размер блока, можно настроить
+
+    for (size_t i = 0; i < rows; i += BLOCK) {
+        size_t i_end = std::min(i + BLOCK, rows);
+        for (size_t j = 0; j < cols; j += BLOCK) {
+            size_t j_end = std::min(j + BLOCK, cols);
+            for (size_t ii = i; ii < i_end; ++ii) {
+                const T* src_row = A_data + ii * cols;
+                for (size_t jj = j; jj < j_end; ++jj) {
+                    // C(jj, ii) = A(ii, jj)
+                    C_data[jj * rows + ii] = src_row[jj];
+                }
+            }
+        }
+    }
+    return C;
+}
+
+
+
+template <std::floating_point T>
+Tensor<T> hadamar_product(const Tensor<T>& a, const Tensor<T>& b){
+
+    if(a.cols() != b.cols() || a.rows() != b.rows()) 
+        throw std::invalid_argument("not saze size");
+
+    const size_t rows = a.rows();
+    const size_t cols = a.cols();
+     
+    Tensor<T> c(rows, cols, 0);
+
+    T* c_data = c.data();
+    const T* a_data = a.data();
+    const T* b_data = b.data();
+
+    for(size_t i = 0; i < cols * rows; ++i){
+        c_data[i] = a_data[i] * b_data[i];
+    }   
+
+    return c;
+
+}
+
+
+template <std::floating_point T>
+Tensor<T> operator*(T alpha, const Tensor<T>& tensor){
+
+    const T* t_data = tensor.data();
+    
+    const size_t rows = tensor.rows(); 
+    const size_t cols = tensor.cols();
+
+    Tensor<T> c(rows, cols);
+
+    T* c_data = c.data();
+    for(size_t i = 0; i < rows * cols; ++i){
+        c_data[i] = t_data[i] * alpha;
+    }
+
+    return c;
+
+}
+
+template <std::floating_point T, typename Func>
+Tensor<T> apply(const Tensor<T>& a, Func&& func){
+
+    const T* a_data = a.data();
+    const size_t rows = a.rows();
+    const size_t cols = a.cols();
+
+    Tensor<T> c(rows, cols);
+
+    T* c_data = c.data();
+
+    for(size_t i = 0; i < rows * cols; ++i){
+        c_data[i] = func(a_data[i]);
+    }
+
+
+    return c;
+}
+
+
+
+template <std::floating_point T, typename Func>
+Tensor<T> cross(const Tensor<T>& a, const Tensor<T>& b){
+    
+
+}
+
+
+
 
 
 }//LIN SPACE
+
+
+
 
 
 

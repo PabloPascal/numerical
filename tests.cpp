@@ -8,8 +8,8 @@
 
 void print_matrix(const linalg::Tensor<float>& a){
 
-    for(size_t i = 0; i < a.cols(); i++){
-        for(size_t j = 0; j < a.rows(); j++){
+    for(size_t i = 0; i < a.rows(); i++){
+        for(size_t j = 0; j < a.cols(); j++){
             std::cout << a(i, j) << " ";
         }
         std::cout << "\n";
@@ -73,12 +73,28 @@ void time_test()
     linalg::Tensor<float> bigA(1000, 1000, {0, 100}, true);
     linalg::Tensor<float> bigB(1000, 1000, {0, 100}, true);
 
+    // Multiply time test
+    std::cout << "Multiply time test\n";  
 
-    std::vector<float> distr = benchmark<float>(count, bigA, bigB, linalg::operator*<float>);
+    auto mat_mul = [](const linalg::Tensor<float>& a, const linalg::Tensor<float>& b){
+        return a*b;
+    };
+
+    std::vector<float> distr = benchmark<float>(count, bigA, bigB, mat_mul);
     std::array<float, 4> res = statistic(distr);
 
     printf("count = %d \n", count);
     printf("min = %f, max = %f, mean = %f, std = %f \n", res[0], res[1], res[2], res[3]);
+
+
+    std::cout << "Sum time test\n";
+    distr = benchmark<float>(count, bigA, bigB, linalg::operator+<float>);
+    res = statistic(distr);
+
+    printf("count = %d \n", count);
+    printf("min = %f, max = %f, mean = %f, std = %f \n", res[0], res[1], res[2], res[3]);
+
+
 
 }
 
@@ -86,34 +102,80 @@ void time_test()
 
 void test_sum()
 {
-size_t count = 300;
+    linalg::Tensor<float> a(2,2, {1,2,3,4});
+    linalg::Tensor<float> b(2,2, {2,3,4,2});
 
-    linalg::Tensor<float> bigA(1000, 1000, {0, 100}, true);
-    linalg::Tensor<float> bigB(1000, 1000, {0, 100}, true);
-
-
-    std::vector<float> distr = benchmark<float>(count, bigA, bigB, linalg::operator+<float>);
-    std::array<float, 4> res = statistic(distr);
-
-    printf("count = %d \n", count);
-    printf("min = %f, max = %f, mean = %f, std = %f \n", res[0], res[1], res[2], res[3]);
-
+    print_matrix(a);
+    std::cout << "\n";
+    print_matrix(b);
+    std::cout << "\n";
+    print_matrix(a+b);
 
 }
 
 
 void test_mult()
 {
-size_t count = 300;
+    linalg::Tensor<float> a(1,3, {1,2,3});
+    linalg::Tensor<float> b(1,3, {2,2,2});
 
-    linalg::Tensor<float> bigA(1000, 1000, {0, 100}, true);
-    linalg::Tensor<float> bigB(1000, 1000, {0, 100}, true);
+    float dot = linalg::dot_product(a,b);
+
+    std::cout << dot << std::endl;
+}
 
 
-    std::vector<float> distr = benchmark<float>(count, bigA, bigB, linalg::operator+<float>);
-    std::array<float, 4> res = statistic(distr);
 
-    printf("count = %d \n", count);
-    printf("min = %f, max = %f, mean = %f, std = %f \n", res[0], res[1], res[2], res[3]);
+void test_transpose()
+{
+    linalg::Tensor<float> a(3,2, std::make_pair(0, 5), false);
+
+
+    print_matrix(a);
+    std::cout << "\n";
+
+    linalg::Tensor<float> b = linalg::transpose(a);
+
+    print_matrix(b);
+    std::cout << "\n";
+
+}
+
+
+
+
+void test_hadamar()
+{
+    linalg::Tensor<float> a(3,2, {1,2,3,4,5,6});
+    linalg::Tensor<float> b(3,2, 2);
+    
+    auto c = linalg::hadamar_product(a, b);
+    
+    print_matrix(c);
+
+}
+
+
+void test_product_with_scalar()
+{
+    linalg::Tensor<float> a(3,2, {1,2,3,4,5,6});
+    float s = 3;
+    
+    auto c = s * a;
+    
+    print_matrix(c);
+
+}
+
+
+void test_apply_func()
+{
+    linalg::Tensor<float> a(3,2, {1,2,3,4,5,6});
+    
+    auto func = [](float s){return std::sin(s);};
+    
+    auto c = linalg::apply<float>(a, func);
+    
+    print_matrix(c);
 
 }
