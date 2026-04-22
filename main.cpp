@@ -4,23 +4,20 @@
 #include <math.h>
 #include "src/matrix_type.hpp"
 
-#include "tests.cpp"
 
 using namespace linalg;
 
 int main()
 {
-    //time_test();
-    //test_sum();
-    //test_mult();
-    //test_transpose();
-    //test_hadamar();
-    //test_product_with_scalar();
-    //test_apply_func();
-    //test_cross_product();
 
+    linalg::vec<double> a(4);
+    linalg::vec<double> b(4);
 
-    printf("Hello\n");
+    
+
+    cross(a,b);
+
+    //printf("Hello\n");
 
 
     return 0;

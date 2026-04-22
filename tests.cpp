@@ -1,193 +1,282 @@
+#include <gtest/gtest.h>
+#include "linalg.hpp"  // ваш заголовочный файл
+#include <cmath>
 
-#include "src/linalg.hpp"
-#include <chrono>
-#include <iostream>
-#include <array>
-#include <functional>
+// Допуск для сравнения чисел с плавающей точкой
+const double EPS = 1e-9;
 
+// ------------------------------------------------------------
+// Тесты для класса Tensor
+// ------------------------------------------------------------
 
-void print_matrix(const linalg::Tensor<float>& a){
-
-    for(size_t i = 0; i < a.rows(); i++){
-        for(size_t j = 0; j < a.cols(); j++){
-            std::cout << a(i, j) << " ";
-        }
-        std::cout << "\n";
-    }
-
-
+TEST(TensorTest, ConstructorDefault) {
+    linalg::Tensor<double> t;
+    EXPECT_EQ(t.rows(), 0);
+    EXPECT_EQ(t.cols(), 0);
+    EXPECT_TRUE(t.get_data().empty());
 }
 
-
-template <std::floating_point T>
-std::vector<T> benchmark(size_t count, 
-    const linalg::Tensor<T>& a, const linalg::Tensor<T>& b, 
-    std::function<linalg::Tensor<T>(linalg::Tensor<T>, linalg::Tensor<T>)> op) 
-{
-    std::vector<float> save;
-
-    for(size_t i = 0; i < count; i++)
-    {
-        auto t_start = std::chrono::steady_clock::now();
-        op(a, b);
-        auto t_end = std::chrono::steady_clock::now();
-
-        save.emplace_back(
-            std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count()
-        );
-    }
-    return save;
+TEST(TensorTest, ConstructorWithInitValue) {
+    linalg::Tensor<double> t(2, 3, 5.0);
+    EXPECT_EQ(t.rows(), 2);
+    EXPECT_EQ(t.cols(), 3);
+    for (size_t i = 0; i < 2; ++i)
+        for (size_t j = 0; j < 3; ++j)
+            EXPECT_DOUBLE_EQ(t(i, j), 5.0);
 }
 
-
-std::array<float, 4> statistic(const std::vector<float>& distr)
-{
-    float mean = 0;
-    float std = 0;
-    for(float x : distr){
-        mean += x;
-    }
-    mean /= distr.size();
-
-    for(float x : distr){
-        std += (x-mean)*(x-mean);
-    }
-    std /= distr.size();
-    std = std::sqrt(std);
-
-
-    return {*std::min_element(distr.begin(), distr.end()),
-            *std::max_element(distr.begin(), distr.end()),
-            mean,
-            std
-            };
-
+TEST(TensorTest, ConstructorWithVector) {
+    std::vector<double> data = {1, 2, 3, 4};
+    linalg::Tensor<double> t(2, 2, data);
+    EXPECT_EQ(t(0,0), 1);
+    EXPECT_EQ(t(0,1), 2);
+    EXPECT_EQ(t(1,0), 3);
+    EXPECT_EQ(t(1,1), 4);
 }
 
-
-
-void time_test()
-{
-    size_t count = 300;
-
-    linalg::Tensor<float> bigA(1000, 1000, {0, 100}, true);
-    linalg::Tensor<float> bigB(1000, 1000, {0, 100}, true);
-
-    // Multiply time test
-    std::cout << "Multiply time test\n";  
-
-    auto mat_mul = [](const linalg::Tensor<float>& a, const linalg::Tensor<float>& b){
-        return a*b;
-    };
-
-    std::vector<float> distr = benchmark<float>(count, bigA, bigB, mat_mul);
-    std::array<float, 4> res = statistic(distr);
-
-    printf("count = %d \n", count);
-    printf("min = %f, max = %f, mean = %f, std = %f \n", res[0], res[1], res[2], res[3]);
-
-
-    std::cout << "Sum time test\n";
-    distr = benchmark<float>(count, bigA, bigB, linalg::operator+<float>);
-    res = statistic(distr);
-
-    printf("count = %d \n", count);
-    printf("min = %f, max = %f, mean = %f, std = %f \n", res[0], res[1], res[2], res[3]);
-
-
-
+TEST(TensorTest, ConstructorWithVectorWrongSize) {
+    std::vector<double> data = {1, 2, 3};
+    EXPECT_THROW(linalg::Tensor<double> t(2, 2, data), std::length_error);
 }
 
-
-
-void test_sum()
-{
-    linalg::Tensor<float> a(2,2, {1,2,3,4});
-    linalg::Tensor<float> b(2,2, {2,3,4,2});
-
-    print_matrix(a);
-    std::cout << "\n";
-    print_matrix(b);
-    std::cout << "\n";
-    print_matrix(a+b);
-
+TEST(TensorTest, AccessOperator) {
+    linalg::Tensor<double> t(2, 2, 0.0);
+    t(0,1) = 7.5;
+    EXPECT_DOUBLE_EQ(t(0,1), 7.5);
+    const auto& ct = t;
+    EXPECT_DOUBLE_EQ(ct(0,1), 7.5);
 }
 
-
-void test_mult()
-{
-    linalg::vec<float> a(3, {1,2,3});
-    linalg::vec<float> b(3, {2,2,2});
-
-    float dot = linalg::dot_product(a,b);
-
-    std::cout << dot << std::endl;
+TEST(TensorTest, TransposeSquare) {
+    linalg::Tensor<double> t(3, 3, 0.0);
+    t(0,1) = 1; t(0,2) = 2;
+    t(1,0) = 3; t(1,2) = 4;
+    t(2,0) = 5; t(2,1) = 6;
+    t.transpose();
+    // Ожидаем: (0,1) было 1 -> теперь (1,0)
+    EXPECT_DOUBLE_EQ(t(1,0), 1);
+    EXPECT_DOUBLE_EQ(t(2,0), 2);
+    EXPECT_DOUBLE_EQ(t(0,1), 3);
+    EXPECT_DOUBLE_EQ(t(2,1), 4);
+    EXPECT_DOUBLE_EQ(t(0,2), 5);
+    EXPECT_DOUBLE_EQ(t(1,2), 6);
 }
 
-
-
-void test_transpose()
-{
-    linalg::Tensor<float> a(3,2, std::make_pair(0, 5), false);
-
-
-    print_matrix(a);
-    std::cout << "\n";
-
-    linalg::Tensor<float> b = linalg::transpose(a);
-
-    print_matrix(b);
-    std::cout << "\n";
-
+TEST(TensorTest, TransposeNonSquare) {
+    linalg::Tensor<double> t(2, 3, 0.0);
+    t(0,0)=1; t(0,1)=2; t(0,2)=3;
+    t(1,0)=4; t(1,1)=5; t(1,2)=6;
+    t.transpose();
+    EXPECT_EQ(t.rows(), 3);
+    EXPECT_EQ(t.cols(), 2);
+    EXPECT_DOUBLE_EQ(t(0,0), 1);
+    EXPECT_DOUBLE_EQ(t(1,0), 2);
+    EXPECT_DOUBLE_EQ(t(2,0), 3);
+    EXPECT_DOUBLE_EQ(t(0,1), 4);
+    EXPECT_DOUBLE_EQ(t(1,1), 5);
+    EXPECT_DOUBLE_EQ(t(2,1), 6);
 }
 
-
-
-
-void test_hadamar()
-{
-    linalg::vec<float> a(5, {1,2,3,4,5});
-    linalg::vec<float> b(5, 2);
-    
-    auto c = linalg::hadamard_product(a, b);
-    
-    print_matrix(c);
-
+TEST(TensorTest, OperatorPlus) {
+    linalg::Tensor<double> a(2,2,1.0);
+    linalg::Tensor<double> b(2,2,2.0);
+    auto c = a + b;
+    for (size_t i = 0; i < 2; ++i)
+        for (size_t j = 0; j < 2; ++j)
+            EXPECT_DOUBLE_EQ(c(i,j), 3.0);
 }
 
-
-void test_product_with_scalar()
-{
-    linalg::Tensor<float> a(3,2, {1,2,3,4,5,6});
-    float s = 3;
-    
-    auto c = s * a;
-    
-    print_matrix(c);
-
+TEST(TensorTest, OperatorMinus) {
+    linalg::Tensor<double> a(2,2,5.0);
+    linalg::Tensor<double> b(2,2,3.0);
+    auto c = a - b;
+    for (size_t i = 0; i < 2; ++i)
+        for (size_t j = 0; j < 2; ++j)
+            EXPECT_DOUBLE_EQ(c(i,j), 2.0);
 }
 
-
-void test_apply_func()
-{
-    linalg::Tensor<float> a(3,2, {1,2,3,4,5,6});
-    
-    auto func = [](float s){return std::sin(s);};
-    
-    auto c = linalg::apply<float>(a, func);
-    
-    print_matrix(c);
-
+TEST(TensorTest, OperatorMultiplyScalar) {
+    linalg::Tensor<double> t(2,2,2.0);
+    auto res = 3.0 * t;
+    for (size_t i = 0; i < 2; ++i)
+        for (size_t j = 0; j < 2; ++j)
+            EXPECT_DOUBLE_EQ(res(i,j), 6.0);
 }
 
+TEST(TensorTest, OperatorDivideScalar) {
+    linalg::Tensor<double> t(2,2,6.0);
+    auto res = t / 2.0;
+    for (size_t i = 0; i < 2; ++i)
+        for (size_t j = 0; j < 2; ++j)
+            EXPECT_DOUBLE_EQ(res(i,j), 3.0);
+}
 
+TEST(TensorTest, MatrixMultiplication) {
+    // 2x3 * 3x2 = 2x2
+    linalg::Tensor<double> A(2,3,0.0);
+    A(0,0)=1; A(0,1)=2; A(0,2)=3;
+    A(1,0)=4; A(1,1)=5; A(1,2)=6;
+    linalg::Tensor<double> B(3,2,0.0);
+    B(0,0)=7; B(0,1)=8;
+    B(1,0)=9; B(1,1)=10;
+    B(2,0)=11; B(2,1)=12;
+    auto C = A * B;
+    EXPECT_EQ(C.rows(), 2);
+    EXPECT_EQ(C.cols(), 2);
+    // Ручной расчёт
+    EXPECT_DOUBLE_EQ(C(0,0), 1*7+2*9+3*11);  // 58
+    EXPECT_DOUBLE_EQ(C(0,1), 1*8+2*10+3*12); // 64
+    EXPECT_DOUBLE_EQ(C(1,0), 4*7+5*9+6*11);  // 139
+    EXPECT_DOUBLE_EQ(C(1,1), 4*8+5*10+6*12); // 154
+}
 
-void test_cross_product(){
-    linalg::vec<float> v1(3, {1,2,2});
-    linalg::vec<float> v2(3, {2,1,3});
+TEST(TensorTest, MatrixMultiplicationWrongDim) {
+    linalg::Tensor<double> A(2,3);
+    linalg::Tensor<double> B(2,2);
+    EXPECT_THROW(A * B, std::length_error);
+}
 
-    auto v3 = linalg::cross(v1, v2);
+TEST(TensorTest, HadamardProduct) {
+    linalg::Tensor<double> A(2,2,0.0);
+    A(0,0)=1; A(0,1)=2; A(1,0)=3; A(1,1)=4;
+    linalg::Tensor<double> B(2,2,0.0);
+    B(0,0)=5; B(0,1)=6; B(1,0)=7; B(1,1)=8;
+    auto C = hadamard_product(A, B); // опечатка в имени функции в коде: hadamar_product
+    EXPECT_DOUBLE_EQ(C(0,0), 5);
+    EXPECT_DOUBLE_EQ(C(0,1), 12);
+    EXPECT_DOUBLE_EQ(C(1,0), 21);
+    EXPECT_DOUBLE_EQ(C(1,1), 32);
+}
 
-    print_matrix(v3);
+TEST(TensorTest, ApplyFunction) {
+    linalg::Tensor<double> t(2,2,2.0);
+    auto res = apply(t, [](double x) { return x * x; });
+    for (size_t i = 0; i < 2; ++i)
+        for (size_t j = 0; j < 2; ++j)
+            EXPECT_DOUBLE_EQ(res(i,j), 4.0);
+}
 
+TEST(TensorTest, TransposeFunction) {
+    linalg::Tensor<double> t(2,3);
+    t(0,0)=1; t(0,1)=2; t(0,2)=3;
+    t(1,0)=4; t(1,1)=5; t(1,2)=6;
+    auto tr = transpose(t);
+    EXPECT_EQ(tr.rows(), 3);
+    EXPECT_EQ(tr.cols(), 2);
+    EXPECT_DOUBLE_EQ(tr(0,0),1); EXPECT_DOUBLE_EQ(tr(1,0),2); EXPECT_DOUBLE_EQ(tr(2,0),3);
+    EXPECT_DOUBLE_EQ(tr(0,1),4); EXPECT_DOUBLE_EQ(tr(1,1),5); EXPECT_DOUBLE_EQ(tr(2,1),6);
+}
+
+// ------------------------------------------------------------
+// Тесты для класса vec
+// ------------------------------------------------------------
+
+TEST(VecTest, ConstructorAndSize) {
+    linalg::vec<double> v(5);
+    EXPECT_EQ(v.size(), 5);
+    EXPECT_EQ(v.rows(), 5);
+    EXPECT_EQ(v.cols(), 1);
+}
+
+TEST(VecTest, AccessOperator) {
+    linalg::vec<double> v(3, 0.0);
+    v[0] = 1.0;
+    v[1] = 2.0;
+    v[2] = 3.0;
+    EXPECT_DOUBLE_EQ(v[0], 1.0);
+    EXPECT_DOUBLE_EQ(v[1], 2.0);
+    EXPECT_DOUBLE_EQ(v[2], 3.0);
+    const auto& cv = v;
+    EXPECT_DOUBLE_EQ(cv[0], 1.0);
+}
+
+TEST(VecTest, Length) {
+    linalg::vec<double> v(3);
+    v[0] = 3.0; v[1] = 4.0; v[2] = 0.0;
+    EXPECT_DOUBLE_EQ(v.length(), 5.0);
+}
+
+TEST(VecTest, Norm) {
+    linalg::vec<double> v(3);
+    v[0] = 3.0; v[1] = 4.0; v[2] = 0.0;
+    v.norm();
+    EXPECT_NEAR(v[0], 0.6, EPS);
+    EXPECT_NEAR(v[1], 0.8, EPS);
+    EXPECT_NEAR(v[2], 0.0, EPS);
+    EXPECT_NEAR(v.length(), 1.0, EPS);
+}
+
+TEST(VecTest, DotProduct) {
+    linalg::vec<double> a(3, {1,2,3});
+    linalg::vec<double> b(3, {4,5,6});
+    double dot = dot_product(a, b);
+    EXPECT_DOUBLE_EQ(dot, 1*4 + 2*5 + 3*6); // 32
+}
+
+TEST(VecTest, DotProductWrongSize) {
+    linalg::vec<double> a(3);
+    linalg::vec<double> b(4);
+    EXPECT_THROW(dot_product(a, b), std::invalid_argument);
+}
+
+TEST(VecTest, CrossProduct) {
+    linalg::vec<double> a(3, {1,0,0});
+    linalg::vec<double> b(3, {0,1,0});
+    auto c = cross(a, b);
+    EXPECT_DOUBLE_EQ(c(0,0), 0);
+    EXPECT_DOUBLE_EQ(c(1,0), 0);
+    EXPECT_DOUBLE_EQ(c(2,0), 1);
+}
+
+TEST(VecTest, CrossProductWrongDim) {
+    linalg::vec<double> a(4);
+    linalg::vec<double> b(4);
+    EXPECT_THROW(cross(a, b), std::invalid_argument);
+}
+
+TEST(VecTest, OuterProduct) {
+    linalg::vec<double> a(3, {1,2,3});
+    linalg::vec<double> b(2, std::vector<double>{4,5});
+    auto M = outer_product(a, b);
+    EXPECT_EQ(M.rows(), 3);
+    EXPECT_EQ(M.cols(), 2);
+    EXPECT_DOUBLE_EQ(M(0,0), 4); EXPECT_DOUBLE_EQ(M(0,1), 5);
+    EXPECT_DOUBLE_EQ(M(1,0), 8); EXPECT_DOUBLE_EQ(M(1,1),10);
+    EXPECT_DOUBLE_EQ(M(2,0),12); EXPECT_DOUBLE_EQ(M(2,1),15);
+}
+
+TEST(VecTest, ConstructFromTensor) {
+    linalg::Tensor<double> t(5,1, 3.14);
+    linalg::vec<double> v(t);
+    EXPECT_EQ(v.size(), 5);
+    EXPECT_DOUBLE_EQ(v[0], 3.14);
+    EXPECT_THROW(linalg::vec<double> v2(linalg::Tensor<double>(3,3)), std::invalid_argument);
+}
+
+// ------------------------------------------------------------
+// Тесты на исключения и граничные случаи
+// ------------------------------------------------------------
+
+TEST(EdgeTest, ZeroSizeTensor) {
+    linalg::Tensor<double> t(0,5);
+    EXPECT_EQ(t.rows(), 0);
+    EXPECT_EQ(t.cols(), 5);
+    // Умножение с нулевым размером не должно падать
+    linalg::Tensor<double> a(0,3);
+    linalg::Tensor<double> b(3,0);
+    auto c = a * b;
+    EXPECT_EQ(c.rows(), 0);
+    EXPECT_EQ(c.cols(), 0);
+}
+
+TEST(EdgeTest, VectorOfLengthOne) {
+    linalg::vec<double> v(1, 5.0);
+    EXPECT_DOUBLE_EQ(v.length(), 5.0);
+    v.norm();
+    EXPECT_DOUBLE_EQ(v[0], 1.0);
+}
+
+int main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

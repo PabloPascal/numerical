@@ -462,7 +462,7 @@ Tensor<T> apply(const Tensor<T>& a, Func&& func){
 template <std::floating_point T>
 Tensor<T> cross(const vec<T>& a, const vec<T>& b){
 
-    if(a.rows() * a.cols() != b.rows() * b.cols() && a.rows() * a.cols() != 3) 
+    if(a.rows() * a.cols() != b.rows() * b.cols() || a.rows() * a.cols() != 3) 
         throw std::invalid_argument("not valid size, should be 3d vectors");
 
     const T* a_data = a.data();
