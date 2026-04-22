@@ -1,5 +1,5 @@
 
-#include "linalg.hpp"
+#include "src/linalg.hpp"
 #include <chrono>
 #include <iostream>
 #include <array>
@@ -149,7 +149,7 @@ void test_hadamar()
     linalg::vec<float> a(5, {1,2,3,4,5});
     linalg::vec<float> b(5, 2);
     
-    auto c = linalg::hadamar_product(a, b);
+    auto c = linalg::hadamard_product(a, b);
     
     print_matrix(c);
 
