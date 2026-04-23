@@ -233,7 +233,7 @@ Tensor<T> operator*(const Tensor<T>& A, const Tensor<T>& B)
 
     const size_t BLOCK = 64;
 
-#pragma omp parallel for collapse(2) schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
     for (size_t i0 = 0; i0 < M; i0 += BLOCK) {
         size_t i_end = std::min(i0 + BLOCK, M);
 
