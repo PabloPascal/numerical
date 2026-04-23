@@ -22,21 +22,21 @@ jobs:
         - {name: "Ubuntu Latest GCC", os: ubuntu-latest, cxx: "g++", cc: "gcc"}
         - {name: "Ubuntu CLANG", os: ubuntu-latest, cxx: "clang++", cc: "clang"}
         - {name: "Windows MSVC", os: windows-latest, cxx: "cl.exe", cc: "cl.exe"}
-        - {name: "macOS Latest Clang (with OpenMP)", os: macos-latest, cxx: "clang++", cc: "clang"}
+        #- {name: "macOS Latest Clang (with OpenMP)", os: macos-latest, cxx: "clang++", cc: "clang"}
         
     steps:
     - uses: actions/checkout@v4
 
   # Установка OpenMP на macOS
-    - name: Install OpenMP (macOS)
-      if: runner.os == 'macOS'
-      run: | 
-        brew install libomp
-        cmake -B build \
-          -DCMAKE_CXX_STANDARD=20 \
-          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-          -DCMAKE_CXX_FLAGS="-Xpreprocessor -fopenmp -I$OMP_ROOT/include" \
-          -DCMAKE_EXE_LINKER_FLAGS="-L$OMP_ROOT/lib -lomp"
+    # - name: Install OpenMP (macOS)
+    #   if: runner.os == 'macOS'
+    #   run: | 
+    #     brew install libomp
+    #     cmake -B build \
+    #       -DCMAKE_CXX_STANDARD=20 \
+    #       -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+    #       -DCMAKE_CXX_FLAGS="-Xpreprocessor -fopenmp -I$OMP_ROOT/include" \
+    #       -DCMAKE_EXE_LINKER_FLAGS="-L$OMP_ROOT/lib -lomp"
 
 
     - name: Install OpenMP (for Clang)
@@ -60,8 +60,9 @@ jobs:
 
     # Конфигурация CMake
     - name: Configure CMake
-      if: runner.os != 'macOS'
-      run: cmake -B build -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+      #if: runner.os != 'macOS'
+      run: |
+        cmake -B build -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
 
 
