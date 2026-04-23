@@ -2,8 +2,12 @@
 #define MATRIX_TYPE
 #include "linalg.hpp"
 #include <cmath>
+#include <type_traits>
 
 //______________________MATRIX TYPE_____________________
+
+#define PI 3.14159265359
+
 
 
 
@@ -24,7 +28,27 @@ Tensor<T> I(size_t n){
     return I;
 }    
 
+template <std::floating_point T>
+Tensor<T> Rotate2d(T angle){
 
+    angle = angle * PI/(T)180;
+    Tensor<T> Rotate(2,2);
+
+    if constexpr(std::is_same_v<T, double>){
+        Rotate(0,0) = std::sin(angle);
+        Rotate(0,1) = std::cos(angle);
+        Rotate(1,0) = -std::sin(angle);
+        Rotate(1,1) = std::cos(angle);
+    }else{
+        Rotate(0,0) = std::sinf(angle);
+        Rotate(0,1) = std::cosf(angle);
+        Rotate(1,0) = -std::sinf(angle);
+        Rotate(1,1) = std::cosf(angle);
+    }
+
+    return Rotate;
+
+}
 
 } // namespace LIN
 
