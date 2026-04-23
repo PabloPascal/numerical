@@ -32,8 +32,12 @@ jobs:
       if: runner.os == 'macOS'
       run: | 
         brew install libomp
-        echo "CPPFLAGS=-I$(brew --prefix libomp)/include" >> $GITHUB_ENV
-        echo "LDFLAGS=-L$(brew --prefix libomp)/lib" >> $GITHUB_ENV
+        cmake -B build \
+          -DCMAKE_CXX_STANDARD=20 \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_CXX_FLAGS="-Xpreprocessor -fopenmp -I$OMP_ROOT/include" \
+          -DCMAKE_EXE_LINKER_FLAGS="-L$OMP_ROOT/lib -lomp"
+
 
     - name: Install OpenMP (for Clang)
       if: runner.os == 'Linux'
@@ -52,14 +56,20 @@ jobs:
       with:
         key: ${{ matrix.config.os }}-${{ matrix.config.cxx }}
 
+
+
     # Конфигурация CMake
     - name: Configure CMake
-      run: |
-        cmake -B build -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        if: runner.os != 'macOS'
+        run: cmake -B build -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+
 
     # Сборка проекта
     - name: Build
       run: cmake --build build --config Release --parallel
+
+
 
     # Запуск тестов
     - name: Run Tests
