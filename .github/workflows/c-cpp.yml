@@ -27,8 +27,8 @@ jobs:
       run: brew install libomp
 
     - name: Install OpenMP (for Clang)
-    if: runner.os == 'Linux'
-    run: sudo apt-get update && sudo apt-get install -y libomp-dev
+      if: runner.os == 'Linux'
+      run: sudo apt-get update && sudo apt-get install -y libomp-dev
 
     # Настройка компиляторов
     - name: Set up compilers
