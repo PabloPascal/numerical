@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ "tensors" ]
 
+
+defaults:
+  run:
+    shell: bash
+
+
 jobs:
   build:
     name: ${{matrix.config.name}}
@@ -38,6 +44,7 @@ jobs:
 
     # Настройка кэша для ccache
     - name: Cache ccache
+      if: runner.os != 'Windows'
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         key: ${{ matrix.config.os }}-${{ matrix.config.cxx }}
@@ -45,9 +52,7 @@ jobs:
     # Конфигурация CMake
     - name: Configure CMake
       run: |
-        cmake -B build \
-          -DCMAKE_CXX_STANDARD=20 \
-          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake -B build -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
     # Сборка проекта
     - name: Build
