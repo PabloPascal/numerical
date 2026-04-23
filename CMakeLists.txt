@@ -3,6 +3,7 @@ project(numerical)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
 find_package(OpenMP REQUIRED)
 
 
@@ -22,4 +23,18 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-target_link_libraries(test_app PRIVATE gtest gtest_main OpenMP::OpenMP_CXX)
+
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(main_app PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(test_app PRIVATE gtest gtest_main OpenMP::OpenMP_CXX)
+
+    if(MSVC)
+        target_compile_options(main_app PRIVATE /openmp:experimental)
+        target_compile_options(test_app PRIVATE /openmp:experimental)
+    endif()
+endif()
+
+
+
+#target_link_libraries(test_app PRIVATE gtest gtest_main OpenMP::OpenMP_CXX)
