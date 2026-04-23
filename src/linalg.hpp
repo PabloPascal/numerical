@@ -284,11 +284,13 @@ Tensor<T> operator+(const Tensor<T>& A, const Tensor<T>& B)
 
     size_t full_size = A.cols() * A.rows();
 
- #pragma omp parallel for simd schedule(static)    
- for(int i = 0; i < full_size; ++i){
-        Cdata[i] = Adata[i] + Bdata[i];
+    #pragma omp parallel for schedule(static)    
+    for(int i = 0; i < full_size; ++i){
+    #pragma omp simd
+        for(size_t j = 0; j < 1; ++j) { // если full_size велико, лучше векторизовать итерации
+            Cdata[i] = Adata[i] + Bdata[i];
+        }
     }
-
     return C;
 
 }
@@ -310,11 +312,13 @@ Tensor<T> operator-(const Tensor<T>& A, const Tensor<T>& B)
 
     size_t full_size = A.cols() * A.rows();
 
- #pragma omp parallel for simd schedule(static)    
- for(int i = 0; i < full_size; ++i){
-        Cdata[i] = Adata[i] - Bdata[i];
+ #pragma omp parallel for schedule(static)    
+    for(int i = 0; i < full_size; ++i){
+        #pragma omp simd
+        for(size_t j = 0; j < 1; ++j) {
+            Cdata[i] = Adata[i] - Bdata[i];
+        }
     }
-
     return C;
 
 }
