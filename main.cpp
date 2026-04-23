@@ -10,15 +10,10 @@ using namespace linalg;
 int main()
 {
 
-    linalg::vec<double> a(4);
-    linalg::vec<double> b(4);
+    auto rot = Rotate2d<float>(30);
+
+    printf("%f %f \n%f %f", rot(0,0), rot(0,1), rot(1,0), rot(1,1));
 
     
-
-    cross(a,b);
-
-    //printf("Hello\n");
-
-
     return 0;
 }
