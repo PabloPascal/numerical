@@ -30,7 +30,10 @@ jobs:
   # Установка OpenMP на macOS
     - name: Install OpenMP (macOS)
       if: runner.os == 'macOS'
-      run: brew install libomp
+      run: | 
+        brew install libomp
+        echo "CPPFLAGS=-I$(brew --prefix libomp)/include" >> $GITHUB_ENV
+        echo "LDFLAGS=-L$(brew --prefix libomp)/lib" >> $GITHUB_ENV
 
     - name: Install OpenMP (for Clang)
       if: runner.os == 'Linux'
