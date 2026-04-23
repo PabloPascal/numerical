@@ -234,26 +234,26 @@ Tensor<T> operator*(const Tensor<T>& A, const Tensor<T>& B)
     const size_t BLOCK = 64;
 
 #pragma omp parallel for schedule(dynamic)
-    for (size_t i0 = 0; i0 < M; i0 += BLOCK) {
-        size_t i_end = std::min(i0 + BLOCK, M);
+    for (int i0 = 0; i0 < M; i0 += BLOCK) {
+        int i_end = std::min(i0 + BLOCK, M);
 
-        for (size_t j0 = 0; j0 < N; j0 += BLOCK) {
-            size_t j_end = std::min(j0 + BLOCK, N);
+        for (int j0 = 0; j0 < N; j0 += BLOCK) {
+            int j_end = std::min(j0 + BLOCK, N);
 
-            for (size_t k0 = 0; k0 < K; k0 += BLOCK) {
-                size_t k_end = std::min(k0 + BLOCK, K);
+            for (int k0 = 0; k0 < K; k0 += BLOCK) {
+                int k_end = std::min(k0 + BLOCK, K);
 
-                for (size_t i = i0; i < i_end; ++i) {
+                for (int i = i0; i < i_end; ++i) {
                     T* C_row = C_data + i * N;          
                     const T* A_row = A_data + i * K;    
 
-                    for (size_t k = k0; k < k_end; ++k) {
+                    for (int k = k0; k < k_end; ++k) {
                         T a_ik = A_row[k];
                         if (a_ik == T(0)) continue;    
                         const T* B_row = B_data + k * N; 
 
                         #pragma omp simd
-                        for (size_t j = j0; j < j_end; ++j) {
+                        for (int j = j0; j < j_end; ++j) {
                             C_row[j] += a_ik * B_row[j];
                         }
                     }
@@ -285,7 +285,7 @@ Tensor<T> operator+(const Tensor<T>& A, const Tensor<T>& B)
     size_t full_size = A.cols() * A.rows();
 
  #pragma omp parallel for simd schedule(static)    
- for(size_t i = 0; i < full_size; ++i){
+ for(int i = 0; i < full_size; ++i){
         Cdata[i] = Adata[i] + Bdata[i];
     }
 
@@ -311,7 +311,7 @@ Tensor<T> operator-(const Tensor<T>& A, const Tensor<T>& B)
     size_t full_size = A.cols() * A.rows();
 
  #pragma omp parallel for simd schedule(static)    
- for(size_t i = 0; i < full_size; ++i){
+ for(int i = 0; i < full_size; ++i){
         Cdata[i] = Adata[i] - Bdata[i];
     }
 
