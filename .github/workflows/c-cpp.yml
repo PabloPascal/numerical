@@ -1,0 +1,58 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "tensors" ]
+  pull_request:
+    branches: [ "tensors" ]
+
+jobs:
+  build:
+    name: ${{matrix.config.name}}
+    runs-on: ${{matrix.config.os}}
+    strategy:
+      matrix:
+        config:
+        - {name: "Ubuntu Latest GCC", os: ubuntu-latest, cxx: "g++", cc: "gcc"}
+        - {name: "Ubuntu CLANG", os: ubuntu-latest, cxx: "clang++", cc: "clang"}
+        - {name: "Windows MSVC", os: windows-latest, cxx: "cl.exe", cc: "cl.exe"}
+        - {name: "macOS Latest Clang (with OpenMP)", os: macos-latest, cxx: "clang++", cc: "clang"}
+        
+    steps:
+    - uses: actions/checkout@v4
+
+  # Установка OpenMP на macOS
+    - name: Install OpenMP (macOS)
+      if: runner.os == 'macOS'
+      run: brew install libomp
+
+    # Настройка компиляторов
+    - name: Set up compilers
+      run: |
+        echo "CC=${{ matrix.config.cc }}" >> $GITHUB_ENV
+        echo "CXX=${{ matrix.config.cxx }}" >> $GITHUB_ENV
+
+    # Настройка кэша для ccache
+    - name: Cache ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        key: ${{ matrix.config.os }}-${{ matrix.config.cxx }}
+
+    # Конфигурация CMake
+    - name: Configure CMake
+      run: |
+        cmake -B build \
+          -DCMAKE_CXX_STANDARD=20 \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+    # Сборка проекта
+    - name: Build
+      run: cmake --build build --config Release --parallel
+
+    # Запуск тестов
+    - name: Run Tests
+      run: |
+        cd build
+        ctest --output-on-failure -C Release
+
+
