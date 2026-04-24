@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.14)
 project(numerical)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+
+
 
 
 find_package(OpenMP REQUIRED)
@@ -36,5 +39,6 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 
+add_test(NAME test_app COMMAND test_app)
 
 #target_link_libraries(test_app PRIVATE gtest gtest_main OpenMP::OpenMP_CXX)
